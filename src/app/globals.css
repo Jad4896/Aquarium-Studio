@@ -1,0 +1,821 @@
+@import "tailwindcss";
+
+:root {
+  --bg-main: #0d121a;
+  --bg-card: #161e2b;
+  --bg-card-hover: #1e293b;
+  --bg-input: #0f1520;
+  --border: #28364a;
+  --accent: #ff6b35;
+  --accent-hover: #ff8552;
+  --teal: #00d2be;
+  --teal-hover: #14ebd7;
+  --text-main: #f0f4f8;
+  --text-muted: #8e9fb5;
+  --success: #2ecc71;
+  --warning: #f39c12;
+  --danger: #e74c3c;
+  --radius: 12px;
+}
+
+/* Dynamic Accessible Font Scaling */
+html {
+  font-size: 16px;
+  transition: font-size 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html[data-font-scale="normal"] {
+  font-size: 16px;
+}
+
+html[data-font-scale="large"] {
+  font-size: 18px; /* +12.5% */
+}
+
+html[data-font-scale="xlarge"] {
+  font-size: 20px; /* +25% */
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Dynamic theme styling mapped to CSS variables */
+.bg-\[\#0d121a\] {
+  background-color: var(--bg-main) !important;
+}
+.bg-\[\#161e2b\] {
+  background-color: var(--bg-card) !important;
+}
+.hover\:bg-\[\#1e293b\]:hover {
+  background-color: var(--bg-card-hover) !important;
+}
+.bg-\[\#0f1520\] {
+  background-color: var(--bg-input) !important;
+}
+.border-\[\#28364a\] {
+  border-color: var(--border) !important;
+}
+.text-\[\#f0f4f8\] {
+  color: var(--text-main) !important;
+}
+.text-\[\#8e9fb5\] {
+  color: var(--text-muted) !important;
+}
+.text-\[\#00d2be\] {
+  color: var(--teal) !important;
+}
+.bg-\[\#00d2be\] {
+  background-color: var(--teal) !important;
+}
+.border-\[\#00d2be\] {
+  border-color: var(--teal) !important;
+}
+.text-\[\#ff6b35\] {
+  color: var(--accent) !important;
+}
+.bg-\[\#ff6b35\] {
+  background-color: var(--accent) !important;
+}
+.border-\[\#ff6b35\] {
+  border-color: var(--accent) !important;
+}
+
+/* Print Styles for Sitter Sheet */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .sitter-print-card {
+    border: 1px solid #ccc !important;
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Space-Industrial & Aquarium Centerpiece Animations */
+@keyframes caustics-shimmer {
+  0% {
+    background-position: 0% 0%;
+    opacity: 0.2;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 0.35;
+  }
+  100% {
+    background-position: 0% 100%;
+    opacity: 0.2;
+  }
+}
+
+.aquarium-caustics-layer {
+  background: radial-gradient(circle at 30% 20%, rgba(0, 210, 190, 0.4) 0%, transparent 40%),
+              radial-gradient(circle at 70% 30%, rgba(20, 235, 215, 0.3) 0%, transparent 45%),
+              radial-gradient(circle at 50% 60%, rgba(59, 130, 246, 0.25) 0%, transparent 50%);
+  background-size: 200% 200%;
+  animation: caustics-shimmer 8s ease-in-out infinite alternate;
+}
+
+@keyframes sway-slow {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(2.5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes sway-fast {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(-3deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.aquarium-sway-slow {
+  transform-origin: bottom center;
+  animation: sway-slow 4.5s ease-in-out infinite;
+}
+
+.aquarium-sway-fast {
+  transform-origin: bottom center;
+  animation: sway-fast 3.2s ease-in-out infinite;
+}
+
+@keyframes bubble-rise-1 {
+  0% { transform: translateY(0px) translateX(0px); opacity: 0; }
+  20% { opacity: 0.7; }
+  80% { opacity: 0.7; }
+  100% { transform: translateY(-160px) translateX(8px); opacity: 0; }
+}
+
+@keyframes bubble-rise-2 {
+  0% { transform: translateY(0px) translateX(0px); opacity: 0; }
+  25% { opacity: 0.6; }
+  75% { opacity: 0.6; }
+  100% { transform: translateY(-190px) translateX(-10px); opacity: 0; }
+}
+
+@keyframes bubble-rise-3 {
+  0% { transform: translateY(0px) translateX(0px); opacity: 0; }
+  30% { opacity: 0.8; }
+  80% { opacity: 0.8; }
+  100% { transform: translateY(-140px) translateX(6px); opacity: 0; }
+}
+
+.animate-bubble-1 {
+  animation: bubble-rise-1 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.animate-bubble-2 {
+  animation: bubble-rise-2 4.2s cubic-bezier(0.4, 0, 0.2, 1) infinite 1.2s;
+}
+.animate-bubble-3 {
+  animation: bubble-rise-3 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.7s;
+}
+.animate-bubble-4 {
+  animation: bubble-rise-1 3.9s cubic-bezier(0.4, 0, 0.2, 1) infinite 2s;
+}
+
+@keyframes swim-path-1 {
+  0% { transform: translateX(0px) translateY(0px) scaleX(1); }
+  45% { transform: translateX(380px) translateY(-15px) scaleX(1); }
+  50% { transform: translateX(380px) translateY(-15px) scaleX(-1); }
+  95% { transform: translateX(0px) translateY(10px) scaleX(-1); }
+  100% { transform: translateX(0px) translateY(0px) scaleX(1); }
+}
+
+@keyframes swim-path-2 {
+  0% { transform: translateX(0px) translateY(0px) scaleX(-1); }
+  45% { transform: translateX(-320px) translateY(12px) scaleX(-1); }
+  50% { transform: translateX(-320px) translateY(12px) scaleX(1); }
+  95% { transform: translateX(0px) translateY(-8px) scaleX(1); }
+  100% { transform: translateX(0px) translateY(0px) scaleX(-1); }
+}
+
+.aquarium-fish-swim-1 {
+  animation: swim-path-1 14s ease-in-out infinite;
+}
+
+.aquarium-fish-swim-2 {
+  animation: swim-path-2 18s ease-in-out infinite;
+}
+
+.clip-tail {
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+/* Realistic 3D Aquarium Animations */
+@keyframes fish-undulate {
+  0%, 100% {
+    transform: rotate(0deg) skewY(0deg);
+  }
+  25% {
+    transform: rotate(-1.5deg) skewY(-1deg);
+  }
+  75% {
+    transform: rotate(1.5deg) skewY(1deg);
+  }
+}
+
+@keyframes swim-path-clown {
+  0% {
+    transform: translate3d(0, 0, 0) scaleX(1);
+  }
+  25% {
+    transform: translate3d(85px, -14px, 0) scaleX(1);
+  }
+  48% {
+    transform: translate3d(150px, -4px, 0) scaleX(1);
+  }
+  50% {
+    transform: translate3d(150px, -4px, 0) scaleX(-1);
+  }
+  75% {
+    transform: translate3d(60px, 12px, 0) scaleX(-1);
+  }
+  98% {
+    transform: translate3d(0, 0, 0) scaleX(-1);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scaleX(1);
+  }
+}
+
+@keyframes swim-path-tang {
+  0% {
+    transform: translate3d(0, 0, 0) scaleX(-1);
+  }
+  22% {
+    transform: translate3d(-110px, 10px, 0) scaleX(-1);
+  }
+  48% {
+    transform: translate3d(-240px, -8px, 0) scaleX(-1);
+  }
+  50% {
+    transform: translate3d(-240px, -8px, 0) scaleX(1);
+  }
+  75% {
+    transform: translate3d(-90px, 6px, 0) scaleX(1);
+  }
+  98% {
+    transform: translate3d(0, 0, 0) scaleX(1);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scaleX(-1);
+  }
+}
+
+@keyframes swim-path-school-1 {
+  0% {
+    transform: translate3d(0, 0, 0) scaleX(1);
+  }
+  28% {
+    transform: translate3d(110px, -12px, 0) scaleX(1);
+  }
+  48% {
+    transform: translate3d(190px, 6px, 0) scaleX(1);
+  }
+  50% {
+    transform: translate3d(190px, 6px, 0) scaleX(-1);
+  }
+  78% {
+    transform: translate3d(70px, -6px, 0) scaleX(-1);
+  }
+  98% {
+    transform: translate3d(0, 0, 0) scaleX(-1);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scaleX(1);
+  }
+}
+
+@keyframes swim-path-school-2 {
+  0% {
+    transform: translate3d(0, 0, 0) scaleX(1);
+  }
+  28% {
+    transform: translate3d(95px, -15px, 0) scaleX(1);
+  }
+  48% {
+    transform: translate3d(175px, 3px, 0) scaleX(1);
+  }
+  50% {
+    transform: translate3d(175px, 3px, 0) scaleX(-1);
+  }
+  78% {
+    transform: translate3d(55px, -9px, 0) scaleX(-1);
+  }
+  98% {
+    transform: translate3d(0, 0, 0) scaleX(-1);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scaleX(1);
+  }
+}
+
+@keyframes shrimp-graze {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  30% {
+    transform: translate(3px, -2px) rotate(1.5deg);
+  }
+  60% {
+    transform: translate(1px, 1px) rotate(-1deg);
+  }
+}
+
+.anim-swim-clown {
+  animation: swim-path-clown 16s ease-in-out infinite;
+}
+
+.anim-swim-tang {
+  animation: swim-path-tang 22s ease-in-out infinite;
+}
+
+.anim-swim-school-1 {
+  animation: swim-path-school-1 12s ease-in-out infinite;
+}
+
+.anim-swim-school-2 {
+  animation: swim-path-school-2 12s ease-in-out infinite 0.5s;
+}
+
+.anim-shrimp {
+  animation: shrimp-graze 6s ease-in-out infinite;
+}
+
+.anim-fish-body {
+  animation: fish-undulate 2.2s ease-in-out infinite;
+}
+
+/* ========================================================================= */
+/* VIRTUAL TANK FAUNA: REALISTIC BIOLOGICAL MOVEMENT PATHS & RESIDENCE ZONES */
+/* ========================================================================= */
+
+/* ========================================================================= */
+/* VIRTUAL TANK FAUNA: SEPARATED TRANSLATION & ORIENTATION KEYFRAMES         */
+/* Translation moves the whole entity (including nametag), flip only turns the sprite */
+/* ========================================================================= */
+
+/* 1. Urchin: Ultra-slow creeping along sandbed and glass surface */
+@keyframes urchin-move {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  20% {
+    transform: translate3d(35px, -3px, 0);
+  }
+  48%, 50% {
+    transform: translate3d(85px, -14px, 0);
+  }
+  75% {
+    transform: translate3d(40px, -5px, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes urchin-tilt {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(2deg);
+  }
+  48% {
+    transform: rotate(-2deg);
+  }
+  50% {
+    transform: rotate(1deg);
+  }
+  75% {
+    transform: rotate(-1deg);
+  }
+}
+.anim-zone-urchin {
+  animation: urchin-move 52s ease-in-out infinite;
+}
+.anim-flip-urchin {
+  animation: urchin-tilt 52s ease-in-out infinite;
+}
+
+/* 2. Hermit Crab: Sandbed scuttling with grazing pauses */
+@keyframes hermit-move {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  24%, 34% {
+    transform: translate3d(65px, 0, 0);
+  }
+  48%, 50% {
+    transform: translate3d(130px, 0, 0);
+  }
+  74%, 84% {
+    transform: translate3d(55px, 0, 0);
+  }
+  98%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes hermit-flip {
+  0%, 48.99% {
+    transform: scaleX(1);
+  }
+  50%, 98.99% {
+    transform: scaleX(-1);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+.anim-zone-hermit {
+  animation: hermit-move 34s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.anim-flip-hermit {
+  animation: hermit-flip 34s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* 3. Snail: Ultra-smooth linear glide along substrate and lower glass seam */
+@keyframes snail-move {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  48%, 50% {
+    transform: translate3d(110px, -6px, 0);
+  }
+  98%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes snail-flip {
+  0%, 48.99% {
+    transform: scaleX(1);
+  }
+  50%, 98.99% {
+    transform: scaleX(-1);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+.anim-zone-snail {
+  animation: snail-move 58s linear infinite;
+}
+.anim-flip-snail {
+  animation: snail-flip 58s linear infinite;
+}
+
+/* 4. Goby: Sits on sandbed, sudden cute hop, sits, hops back */
+@keyframes goby-move {
+  0%, 15% {
+    transform: translate3d(0, 0, 0);
+  }
+  18% {
+    transform: translate3d(24px, -12px, 0);
+  }
+  21%, 46% {
+    transform: translate3d(48px, 0, 0);
+  }
+  49% {
+    transform: translate3d(72px, -10px, 0);
+  }
+  52%, 66% {
+    transform: translate3d(96px, 0, 0);
+  }
+  69% {
+    transform: translate3d(48px, -14px, 0);
+  }
+  72%, 87% {
+    transform: translate3d(36px, 0, 0);
+  }
+  90% {
+    transform: translate3d(8px, -8px, 0);
+  }
+  93%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes goby-flip {
+  0%, 15% {
+    transform: scaleX(1) rotate(0deg);
+  }
+  18% {
+    transform: scaleX(1) rotate(-6deg);
+  }
+  21%, 46% {
+    transform: scaleX(1) rotate(0deg);
+  }
+  49% {
+    transform: scaleX(1) rotate(-4deg);
+  }
+  51.99% {
+    transform: scaleX(1) rotate(0deg);
+  }
+  52%, 66% {
+    transform: scaleX(-1) rotate(0deg);
+  }
+  69% {
+    transform: scaleX(-1) rotate(6deg);
+  }
+  72%, 87% {
+    transform: scaleX(-1) rotate(0deg);
+  }
+  90% {
+    transform: scaleX(-1) rotate(4deg);
+  }
+  92.99% {
+    transform: scaleX(-1) rotate(0deg);
+  }
+  93%, 100% {
+    transform: scaleX(1) rotate(0deg);
+  }
+}
+.anim-zone-goby {
+  animation: goby-move 19s ease-in-out infinite;
+}
+.anim-flip-goby {
+  animation: goby-flip 19s ease-in-out infinite;
+}
+
+/* 5. Shrimp: Stationed on rockwork/crevice, sway, occasional mini-burst */
+@keyframes shrimp-move {
+  0%, 36% {
+    transform: translate3d(0, 0, 0);
+  }
+  39% {
+    transform: translate3d(-16px, -5px, 0);
+  }
+  43%, 76% {
+    transform: translate3d(-8px, 0, 0);
+  }
+  79% {
+    transform: translate3d(4px, -2px, 0);
+  }
+  84%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+.anim-zone-shrimp {
+  animation: shrimp-move 15s ease-in-out infinite;
+}
+.anim-flip-shrimp {
+  /* static orientation */
+}
+
+/* 6. Clownfish: Signature cheerful waddle */
+@keyframes clown-move {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  22% {
+    transform: translate3d(42px, -7px, 0);
+  }
+  48%, 50% {
+    transform: translate3d(88px, 5px, 0);
+  }
+  74% {
+    transform: translate3d(38px, -5px, 0);
+  }
+  98%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes clown-flip {
+  0% {
+    transform: scaleX(1) rotate(0deg);
+  }
+  22% {
+    transform: scaleX(1) rotate(3deg);
+  }
+  48% {
+    transform: scaleX(1) rotate(-2deg);
+  }
+  49.99% {
+    transform: scaleX(1) rotate(0deg);
+  }
+  50% {
+    transform: scaleX(-1) rotate(0deg);
+  }
+  74% {
+    transform: scaleX(-1) rotate(-3deg);
+  }
+  98% {
+    transform: scaleX(-1) rotate(0deg);
+  }
+  100% {
+    transform: scaleX(1) rotate(0deg);
+  }
+}
+.anim-zone-clownfish {
+  animation: clown-move 21s ease-in-out infinite;
+}
+.anim-flip-clownfish {
+  animation: clown-flip 21s ease-in-out infinite;
+}
+
+/* 7. Tang: Broad open water cruising */
+@keyframes tang-move {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(-90px, 10px, 0);
+  }
+  48%, 50% {
+    transform: translate3d(-200px, -5px, 0);
+  }
+  75% {
+    transform: translate3d(-75px, 6px, 0);
+  }
+  98%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes tang-flip {
+  0%, 48.99% {
+    transform: scaleX(-1);
+  }
+  50%, 98.99% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(-1);
+  }
+}
+.anim-zone-tang {
+  animation: tang-move 25s ease-in-out infinite;
+}
+.anim-flip-tang {
+  animation: tang-flip 25s ease-in-out infinite;
+}
+
+/* 8. Schooling Dart */
+@keyframes school-move {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(75px, -8px, 0);
+  }
+  48%, 50% {
+    transform: translate3d(150px, 6px, 0);
+  }
+  75% {
+    transform: translate3d(55px, -7px, 0);
+  }
+  98%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes school-flip {
+  0%, 48.99% {
+    transform: scaleX(1);
+  }
+  50%, 98.99% {
+    transform: scaleX(-1);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+.anim-zone-schooling {
+  animation: school-move 16s ease-in-out infinite;
+}
+.anim-flip-schooling {
+  animation: school-flip 16s ease-in-out infinite;
+}
+
+/* 9. Substrate snuffling (Corydoras / Pleco) */
+@keyframes bottom-move {
+  0%, 20% {
+    transform: translate3d(0, 0, 0);
+  }
+  35% {
+    transform: translate3d(36px, -2px, 0);
+  }
+  50% {
+    transform: translate3d(70px, 0, 0);
+  }
+  70% {
+    transform: translate3d(28px, 1px, 0);
+  }
+  85% {
+    transform: translate3d(8px, -2px, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes bottom-flip {
+  0%, 48.99% {
+    transform: scaleX(1);
+  }
+  50%, 83.99% {
+    transform: scaleX(-1);
+  }
+  85%, 100% {
+    transform: scaleX(1);
+  }
+}
+.anim-zone-bottom {
+  animation: bottom-move 23s ease-in-out infinite;
+}
+.anim-flip-bottom {
+  animation: bottom-flip 23s ease-in-out infinite;
+}
+
+/* Internal body & fin details */
+@keyframes fin-flutter {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+.anim-fin-flutter {
+  transform-origin: 30% 50%;
+  animation: fin-flutter 0.38s ease-in-out infinite;
+}
+
+@keyframes tail-wag {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+}
+.anim-tail-wag {
+  transform-origin: 15% 50%;
+  animation: tail-wag 0.85s ease-in-out infinite;
+}
+
+@keyframes antennae-sway {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+.anim-antennae-sway {
+  transform-origin: 20% 80%;
+  animation: antennae-sway 2.6s ease-in-out infinite;
+}
+
+@keyframes urchin-spines-pulse {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.025) rotate(1.5deg);
+  }
+}
+.anim-urchin-spines {
+  transform-origin: center;
+  animation: urchin-spines-pulse 4.5s ease-in-out infinite;
+}
+
+/* Stationary / Sessile: Clams, Feather Duster Worms, Sponges */
+@keyframes sessile-breathe {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  35% {
+    transform: translate3d(0, -1.5px, 0) scale(1.025);
+  }
+  70% {
+    transform: translate3d(0, -0.5px, 0) scale(1.01);
+  }
+}
+.anim-zone-sessile {
+  transform-origin: bottom center;
+  animation: sessile-breathe 7.5s ease-in-out infinite;
+}

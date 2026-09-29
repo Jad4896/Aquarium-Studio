@@ -1,0 +1,194 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Tank {
+  id              String             @id @default(cuid())
+  name            String             @default("Main Reef")
+  tankType        String             @default("SALTWATER") // "SALTWATER" | "FRESHWATER"
+  volumeLiters    Float              @default(80)
+  purpose         String             @default("Mixed Reef (Soft, LPS, SPS)")
+  cycle           String             @default("11 Days (CaribSea Arag-Alive)")
+  setupDate       String             @default("2026-08-05")
+  equipment       String             @default("3D Printed Drop-in AIO Filter, UV Sterilizer, Titanium Heater, Surface Skimmer Weir, Coral Propagation Mounts")
+  lighting        String             @default("9h Photoperiod: 1h Ramp Blues, 7h Peak (80% Royal Blue, 15% White, 5% UV), 1h Moonlights")
+  aquascapeStyle  String?            @default("procedural")
+  hasSump             Boolean            @default(false)
+  displayVolumeLiters Float?             @default(80)
+  sumpVolumeLiters    Float?             @default(0)
+  sumpChambers        Int?               @default(3)
+  sumpEquipment       String?            @default("Mechanical Fleece / Sock, Protein Skimmer, Return Pump & ATO")
+  sumpMedia           String?            @default("Filter fleece, activated carbon, bio-media blocks")
+  hasRefugium         Boolean?           @default(false)
+  refugiumVolumeLiters Float?            @default(0)
+  refugiumType        String?            @default("Chaetomorpha Algae")
+  refugiumLighting    String?            @default("Horticultural Grow LED (Reverse Photoperiod)")
+  formFactor          String?        @default("auto") // "auto" | "nano_cube" | "nano_rectangular" | "standard" | "panoramic"
+  
+  // Saltwater Target parameter strings / ranges
+  salinityTarget  String             @default("1.025 - 1.026")
+  tempTarget      String             @default("25.0 - 26.0")
+  phTarget        String             @default("8.1 - 8.4")
+  dkhTarget       String             @default("7.8 - 9.0")
+  caTarget        String             @default("400 - 450")
+  mgTarget        String             @default("1300 - 1400")
+  no3Target       String             @default("5.0 - 15.0")
+  po4Target       String             @default("0.03 - 0.08")
+
+  // Freshwater Target parameter strings / ranges
+  ammoniaTarget   String?            @default("0.0 ppm")
+  nitriteTarget   String?            @default("0.0 ppm")
+  ghTarget        String?            @default("4.0 - 8.0 dGH")
+  khTarget        String?            @default("1.0 - 4.0 dKH")
+  tdsTarget       String?            @default("120 - 180 ppm")
+
+  // Sitter Sheet Info
+  sitterTitle     String             @default("🐠 Main Reef Care & Emergency Instructions")
+  sitterContact   String             @default("Tank Owner (+1-555-0199)")
+  sitterEmergency String             @default("Call immediately on leak or equipment failure: +1-555-0199")
+  sitterChecklist String             @default("[\"Check temperature reading on digital display (~25.5°C / 78°F).\",\"Ensure ATO reservoir has freshwater (RO/DI water ONLY, never saltwater).\",\"Feed fish once daily at lights-on (1/2 cube of frozen mysis shrimp thawed in cup).\",\"Check surface skimmer and overflow weir for normal quiet water level.\"]")
+  sitterNotes     String             @default("Do NOT dose any additives unless contacted. In case of power loss, connect battery bubbler to main display.")
+
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  parameters      WaterParameter[]
+  livestock       Livestock[]
+  tasks           MaintenanceTask[]
+  notes           StickyNote[]
+  milestones      TankMilestone[]
+  timeline        TimelineEvent[]
+}
+
+model WaterParameter {
+  id        String   @id @default(cuid())
+  tankId    String
+  tank      Tank     @relation(fields: [tankId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now())
+  
+  // Shared parameters
+  temp      Float    // °C e.g. 25.5
+  ph        Float    // e.g. 8.25
+  no3       Float?   // ppm e.g. 10.0 (used in both SW and FW)
+  wcLiters  Float?   @default(0) // Water change volume
+  mood      String?  @default("Thriving 😍")
+  notes     String?
+
+  // Saltwater-specific parameters (nullable for FW)
+  salinity  Float?   // e.g. 1.025 SG
+  alk       Float?   // dKH e.g. 8.3
+  ca        Float?   // ppm e.g. 430
+  mg        Float?   // ppm e.g. 1350
+  po4       Float?   // ppm e.g. 0.04
+
+  // Freshwater-specific parameters (nullable for SW)
+  ammonia   Float?   // ppm e.g. 0.0
+  nitrite   Float?   // ppm e.g. 0.0
+  gh        Float?   // dGH e.g. 6.0
+  kh        Float?   // dKH e.g. 2.0
+  tds       Float?   // ppm e.g. 140
+
+  createdAt DateTime @default(now())
+}
+
+model Livestock {
+  id              String           @id @default(cuid())
+  tankId          String
+  tank            Tank             @relation(fields: [tankId], references: [id], onDelete: Cascade)
+  type            String           // "CORAL" or "FISH_INVERT"
+  name            String
+  species         String
+  category        String           // "LPS", "SPS", "Softie", "Fish", "Invert", "Urchin", "Snail"
+  growthType      String?          // e.g. "Encrusting", "Calcium carbonate skeleton building", "Runners / Stolons", "Root / Basal Foot"
+  zone            String?          // e.g. "Low-Mid / Gentle Flow" or Niche
+  lighting        String?          // Lighting requirement (e.g. PAR 150-250 Moderate)
+  aggressiveness  String?          // Aggressiveness / stinging / chemical warfare / peaceful
+  temperament     String?          // Care observations & temperament / territorial behavior
+  diet            String?          // Diet & feeding regimen
+  interestingFact String?          // Interesting facts or behaviors
+  notes           String?
+  primaryPhotoUrl String?
+  primaryVideoUrl String?
+  beforePhotoUrl  String?
+  afterPhotoUrl   String?
+  media           LivestockMedia[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model LivestockMedia {
+  id          String    @id @default(cuid())
+  livestockId String
+  livestock   Livestock @relation(fields: [livestockId], references: [id], onDelete: Cascade)
+  url         String
+  mediaType   String    @default("image") // "image" or "video"
+  caption     String?
+  date        DateTime  @default(now())
+  isBefore    Boolean   @default(false)
+  isAfter     Boolean   @default(false)
+  isMilestone Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
+
+model MaintenanceTask {
+  id            String   @id @default(cuid())
+  tankId        String
+  tank          Tank     @relation(fields: [tankId], references: [id], onDelete: Cascade)
+  title         String
+  intervalDays  Int      @default(7)
+  lastCompleted DateTime @default(now())
+  desc          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model StickyNote {
+  id        String   @id @default(cuid())
+  tankId    String
+  tank      Tank     @relation(fields: [tankId], references: [id], onDelete: Cascade)
+  title     String
+  tag       String   @default("recipe") // "recipe", "general", "warning", "trace"
+  tagColor  String   @default("#00d2be")
+  body      String
+  dateLabel String   @default("Pinned")
+  isPinned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SaltFormula {
+  id             String  @id @default(cuid())
+  name           String
+  gramsPerLiter  Float
+  isDefault      Boolean @default(false)
+}
+
+model TankMilestone {
+  id        String   @id @default(cuid())
+  tankId    String
+  tank      Tank     @relation(fields: [tankId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now())
+  title     String
+  caption   String?
+  photoUrl  String?
+  videoUrl  String?
+  createdAt DateTime @default(now())
+}
+
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  tankId      String
+  tank        Tank     @relation(fields: [tankId], references: [id], onDelete: Cascade)
+  date        DateTime @default(now())
+  title       String
+  category    String   @default("Livestock") // "Livestock", "Equipment", "Milestone", "Chemical/Dosing", "Maintenance"
+  description String?
+  photoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
