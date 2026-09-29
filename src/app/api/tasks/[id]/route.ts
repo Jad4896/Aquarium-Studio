@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function PATCH(
+async function handleUpdateTask(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -10,13 +10,14 @@ export async function PATCH(
     const body = await request.json();
 
     const data: Record<string, unknown> = {};
-    if (body.action === "complete") {
-      data.lastCompleted = new Date();
-    } else {
-      if (body.title !== undefined) data.title = body.title;
-      if (body.intervalDays !== undefined) data.intervalDays = parseInt(body.intervalDays, 10);
-      if (body.desc !== undefined) data.desc = body.desc;
-      if (body.lastCompleted !== undefined) data.lastCompleted = new Date(body.lastCompleted);
+    if (body.action === "complete" || body.completed === true) {
+      data.lastCompleted = body.lastCompleted ? new Date(body.lastCompleted) : new Date();
+    }
+    if (body.title !== undefined) data.title = body.title;
+    if (body.intervalDays !== undefined) data.intervalDays = parseInt(body.intervalDays, 10);
+    if (body.desc !== undefined) data.desc = body.desc;
+    if (body.lastCompleted !== undefined && data.lastCompleted === undefined) {
+      data.lastCompleted = new Date(body.lastCompleted);
     }
 
     const task = await prisma.maintenanceTask.update({
@@ -29,6 +30,20 @@ export async function PATCH(
     console.error("Failed to update task:", error);
     return NextResponse.json({ error: "Failed to update task" }, { status: 500 });
   }
+}
+
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return handleUpdateTask(request, context);
+}
+
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return handleUpdateTask(request, context);
 }
 
 export async function DELETE(

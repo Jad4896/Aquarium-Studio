@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function PATCH(
+async function handleUpdateNote(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -19,6 +19,20 @@ export async function PATCH(
     console.error("Failed to update note:", error);
     return NextResponse.json({ error: "Failed to update sticky note" }, { status: 500 });
   }
+}
+
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return handleUpdateNote(request, context);
+}
+
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return handleUpdateNote(request, context);
 }
 
 export async function DELETE(
