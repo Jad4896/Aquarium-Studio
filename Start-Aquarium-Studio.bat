@@ -21,7 +21,7 @@ cd /d "%~dp0"
 
 :: 3. Ensure .env exists with default configuration
 if not exist ".env" (
-    echo [INFO] Creating default configuration (.env)...
+    echo [INFO] Creating default configuration file...
     echo DATABASE_URL="file:./dev.db">.env
     echo GEMINI_API_KEY="">>.env
 )
@@ -57,3 +57,9 @@ echo Leave this window open while using Aquarium Studio.
 echo [SHUTDOWN] To shut down: press Ctrl+C or simply close this window.
 echo.
 call npm run dev
+
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Server exited with code %errorlevel%.
+    pause
+)
