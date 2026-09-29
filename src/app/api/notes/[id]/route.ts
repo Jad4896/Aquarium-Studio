@@ -9,9 +9,17 @@ async function handleUpdateNote(
     const { id } = await params;
     const body = await request.json();
 
+    const data: Record<string, unknown> = {};
+    if (body.title !== undefined) data.title = body.title;
+    if (body.tag !== undefined) data.tag = body.tag;
+    if (body.tagColor !== undefined) data.tagColor = body.tagColor;
+    if (body.body !== undefined) data.body = body.body;
+    if (body.dateLabel !== undefined) data.dateLabel = body.dateLabel;
+    if (body.isPinned !== undefined) data.isPinned = Boolean(body.isPinned);
+
     const note = await prisma.stickyNote.update({
       where: { id },
-      data: body,
+      data,
     });
 
     return NextResponse.json({ success: true, note });
