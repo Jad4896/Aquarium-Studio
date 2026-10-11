@@ -95,10 +95,13 @@ function getPixelSpriteForLivestock(item: Livestock, isFreshwater: boolean): str
   if (combined.includes("flame angel") || combined.includes("loriculus")) {
     return "/aquariums/flame_angel_pixel.png";
   }
+  if (combined.includes("cherry shrimp") || combined.includes("neocaridina") || (isFreshwater && combined.includes("shrimp"))) {
+    return "/aquariums/cherry_shrimp_pixel.png";
+  }
   if (combined.includes("shrimp") || combined.includes("cleaner") || combined.includes("amboinensis")) {
     return "/aquariums/cleaner_shrimp_pixel.png";
   }
-  if (combined.includes("snail") || combined.includes("turbo") || combined.includes("trochus") || combined.includes("nerite")) {
+  if (combined.includes("snail") || combined.includes("turbo") || combined.includes("trochus") || combined.includes("nerite") || combined.includes("urchin")) {
     return "/aquariums/turbo_snail_pixel.png";
   }
   if (combined.includes("tetra") || combined.includes("neon") || combined.includes("cardinal") || combined.includes("paracheirodon")) {
@@ -664,6 +667,11 @@ export default function PixelTamagotchiTank({
           } else if (fish.y > bottomBound) {
             fish.y = bottomBound;
             fish.vy = -Math.abs(fish.vy);
+          }
+
+          // Enforce facing matches horizontal travel direction
+          if (Math.abs(fish.vx) > 0.01) {
+            fish.facing = fish.vx >= 0 ? 1 : -1;
           }
         }
 
