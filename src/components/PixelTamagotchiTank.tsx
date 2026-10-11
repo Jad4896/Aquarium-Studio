@@ -311,8 +311,8 @@ export default function PixelTamagotchiTank({
           id: nextPelletIdRef.current++,
           x: dropX - 10 + Math.random() * 20,
           y: dropY,
-          vy: 0.9 + Math.random() * 0.6,
-          vx: (Math.random() - 0.5) * 0.3,
+          vy: 0.28 + Math.random() * 0.18, // Slow, realistic gentle floating drift
+          vx: (Math.random() - 0.5) * 0.15,
           color: colors[Math.floor(Math.random() * colors.length)],
           eaten: false,
         },
@@ -320,8 +320,8 @@ export default function PixelTamagotchiTank({
           id: nextPelletIdRef.current++,
           x: dropX - 25 + Math.random() * 50,
           y: dropY + 5,
-          vy: 0.8 + Math.random() * 0.5,
-          vx: (Math.random() - 0.5) * 0.4,
+          vy: 0.24 + Math.random() * 0.15, // Slow, realistic gentle floating drift
+          vx: (Math.random() - 0.5) * 0.15,
           color: colors[Math.floor(Math.random() * colors.length)],
           eaten: false,
         },
@@ -349,6 +349,43 @@ export default function PixelTamagotchiTank({
     [soundEnabled]
   );
 
+  // Track currently hovered fish for pausing & persistent inspection tag
+  const [hoveredFishId, setHoveredFishId] = useState<string | null>(null);
+  const hoveredFishIdRef = useRef<string | null>(null);
+
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
+
+    let targetFish: FishEntity | null = null;
+    for (const fish of fishEntitiesRef.current) {
+      const dx = Math.abs(fish.x - mouseX);
+      const dy = Math.abs(fish.y - mouseY);
+      // Comfortable hover inspection hit-box
+      if (dx < fish.width * 0.9 && dy < fish.height * 0.9) {
+        targetFish = fish;
+        break;
+      }
+    }
+
+    const nextId = targetFish ? targetFish.id : null;
+    if (nextId !== hoveredFishIdRef.current) {
+      hoveredFishIdRef.current = nextId;
+      setHoveredFishId(nextId);
+    }
+  };
+
+  const handleCanvasMouseLeave = () => {
+    hoveredFishIdRef.current = null;
+    setHoveredFishId(null);
+  };
+
   // Tap fish to interact & pet
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -365,7 +402,7 @@ export default function PixelTamagotchiTank({
     for (const fish of fishEntitiesRef.current) {
       const dx = Math.abs(fish.x - clickX);
       const dy = Math.abs(fish.y - clickY);
-      if (dx < fish.width * 0.8 && dy < fish.height * 0.8) {
+      if (dx < fish.width * 0.9 && dy < fish.height * 0.9) {
         clickedFish = fish;
         break;
       }
@@ -461,14 +498,40 @@ export default function PixelTamagotchiTank({
         ctx.fillRect(0, 0, W, H);
       }
 
-      // ── 2. ACTINIC NIGHT / DAY SHADER ─────────────────────────────────────
+      // ── 2. ACTINIC NIGHT / DAY SHADER WITH CORAL GLOW ─────────────────────
       if (actinicMode) {
         ctx.save();
-        ctx.fillStyle = "rgba(10, 20, 90, 0.45)";
+        // Deep mysterious moonlight oceanic wash
+        ctx.fillStyle = "rgba(8, 14, 52, 0.52)";
         ctx.fillRect(0, 0, W, H);
-        // Bioluminescent blue wash
-        ctx.fillStyle = "rgba(0, 150, 255, 0.12)";
+
+        // Bioluminescent blue/violet actinic wash
+        ctx.fillStyle = "rgba(30, 64, 175, 0.18)";
         ctx.fillRect(0, 0, W, H);
+
+        // Soft, faint bioluminescent coral glowing clusters at bottom reef structure
+        const coralGlows = [
+          { x: 190, y: 340, radius: 95, color: "rgba(0, 245, 196, 0.16)" }, // Glowing turquoise SPS / Acropora
+          { x: 340, y: 375, radius: 85, color: "rgba(168, 85, 247, 0.16)" }, // Glowing neon purple / Zoanthids
+          { x: 460, y: 350, radius: 100, color: "rgba(236, 72, 153, 0.15)" }, // Glowing vibrant pink Chalice / Euphyllia
+          { x: 620, y: 330, radius: 90, color: "rgba(56, 189, 248, 0.16)" }, // Glowing electric blue Torch / Goniopora
+          { x: 730, y: 380, radius: 80, color: "rgba(74, 222, 128, 0.14)" }, // Glowing radioactive green GSP / Brain coral
+        ];
+
+        // Soft pulsating shimmer using sine cycle
+        const glowPulse = 0.85 + Math.sin(frameCount * 0.04) * 0.15;
+
+        for (const g of coralGlows) {
+          const radial = ctx.createRadialGradient(g.x, g.y, 8, g.x, g.y, g.radius * glowPulse);
+          radial.addColorStop(0, g.color);
+          radial.addColorStop(0.5, g.color.replace(/[\d\.]+\)$/, "0.08)"));
+          radial.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.fillStyle = radial;
+          ctx.beginPath();
+          ctx.arc(g.x, g.y, g.radius * glowPulse, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
         ctx.restore();
       }
 
@@ -527,7 +590,16 @@ export default function PixelTamagotchiTank({
           }
         }
 
-        if (nearestFood) {
+        // Check if currently hovered by mouse for inspection
+        const isHovered = hoveredFishIdRef.current === fish.id;
+
+        if (isHovered) {
+          // PAUSE IN THEIR TRACKS FOR INSPECTION
+          // Very gentle micro-hover in place, no translational movement
+          fish.vx = 0;
+          fish.vy = 0;
+          fish.tailWiggle += 0.05; // Gentle fin flutter while paused
+        } else if (nearestFood) {
           // Gently drift toward food
           const angle = Math.atan2(nearestFood.y - fish.y, nearestFood.x - fish.x);
           const chaseSpeed = fish.speed * 1.15; // Smooth relaxed glide toward food
@@ -595,13 +667,15 @@ export default function PixelTamagotchiTank({
           }
         }
 
-        fish.x += fish.vx;
-        fish.y += fish.vy;
+        if (!isHovered) {
+          fish.x += fish.vx;
+          fish.y += fish.vy;
+        }
 
         // ── RENDER FISH SPRITE ───────────────────────────────────────────────
         ctx.save();
         const drawX = Math.round(fish.x);
-        const drawY = Math.round(fish.y + Math.sin(fish.tailWiggle) * 2.2);
+        const drawY = Math.round(fish.y + Math.sin(fish.tailWiggle) * (isHovered ? 1.0 : 2.2));
 
         ctx.translate(drawX, drawY);
 
@@ -611,13 +685,20 @@ export default function PixelTamagotchiTank({
         }
 
         // Slight playful wiggle rotation
-        const wiggleAngle = Math.sin(fish.tailWiggle) * 0.06;
+        const wiggleAngle = Math.sin(fish.tailWiggle) * (isHovered ? 0.03 : 0.06);
         ctx.rotate(wiggleAngle);
 
         const spriteImg = loadedSpritesRef.current.get(fish.spriteUrl);
         if (spriteImg && spriteImg.complete) {
           // Nearest neighbor pixel art rendering
           ctx.imageSmoothingEnabled = false;
+
+          // Glowing aura under sprite if inspected
+          if (isHovered) {
+            ctx.shadowColor = "#00d2be";
+            ctx.shadowBlur = 12;
+          }
+
           ctx.drawImage(
             spriteImg,
             -fish.width / 2,
@@ -637,8 +718,45 @@ export default function PixelTamagotchiTank({
 
         ctx.restore();
 
-        // Little floating name tag on hover or celebration
-        if (fish.celebrating > 0) {
+        // ── PERSISTENT INSPECTION BADGE ON HOVER (Doesn't flash away) ─────────
+        if (isHovered) {
+          ctx.save();
+          const badgeY = Math.max(35, drawY - 32);
+          ctx.font = "bold 11px monospace";
+          const nameMetrics = ctx.measureText(fish.name);
+          const badgeWidth = Math.max(90, nameMetrics.width + 20);
+          const badgeHeight = 22;
+          const badgeX = drawX - badgeWidth / 2;
+
+          // Rounded retro pixel pill badge
+          ctx.fillStyle = "rgba(11, 16, 25, 0.92)";
+          ctx.strokeStyle = "#00d2be";
+          ctx.lineWidth = 1.5;
+          ctx.shadowColor = "rgba(0, 210, 190, 0.5)";
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.roundRect(badgeX, badgeY - 14, badgeWidth, badgeHeight, 6);
+          ctx.fill();
+          ctx.stroke();
+
+          // Sub-indicator caret pointing to fish
+          ctx.fillStyle = "#00d2be";
+          ctx.beginPath();
+          ctx.moveTo(drawX - 5, badgeY + 8);
+          ctx.lineTo(drawX + 5, badgeY + 8);
+          ctx.lineTo(drawX, badgeY + 13);
+          ctx.closePath();
+          ctx.fill();
+
+          // Title text
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "#ffffff";
+          ctx.textAlign = "center";
+          ctx.fillText(`🔍 ${fish.name}`, drawX, badgeY + 1);
+
+          ctx.restore();
+        } else if (fish.celebrating > 0) {
+          // Little floating name tag on celebration
           ctx.save();
           ctx.font = "bold 9px monospace";
           ctx.fillStyle = "#00d2be";
@@ -797,8 +915,10 @@ export default function PixelTamagotchiTank({
         <canvas
           ref={canvasRef}
           onClick={handleCanvasClick}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseLeave={handleCanvasMouseLeave}
           className="w-full h-full object-contain cursor-crosshair [image-rendering:pixelated] [image-rendering:crisp-edges]"
-          title="Click to drop food, or click a fish to pet it!"
+          title="Click to drop flakes, or hover a fish to inspect and pause it!"
         />
 
         {/* Feeding Hint Pill */}
