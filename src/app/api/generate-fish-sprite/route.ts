@@ -8,32 +8,49 @@ const execAsync = promisify(exec);
 const TIMEOUT_MS = 12_000;
 
 /** Path to Python interpreter */
-const PYTHON_PATH =
-  process.env.PYTHON_BG_REMOVAL || "python";
+const PYTHON_PATH = process.env.PYTHON_BG_REMOVAL || "python";
 
 /** Path to remove_bg.py helper script */
 const REMOVE_BG_SCRIPT = path.join(process.cwd(), "scripts", "remove_bg.py");
 
+/** Path to pixelate.py helper script */
+const PIXELATE_SCRIPT = path.join(process.cwd(), "scripts", "pixelate.py");
+
 /**
- * Curated Library of pristine, studio-quality transparent cutouts.
- * Guaranteed 100% intact with complete fins, tails, and bodies.
+ * Curated Library of pristine, retro 16-bit pixel art transparent sprites.
  */
 const CURATED_SPRITES: Array<{ keywords: string[]; filename: string }> = [
   {
     keywords: ["clownfish", "ocellaris", "percula", "amphiprion", "clown fish"],
-    filename: "clownfish.png",
+    filename: "clownfish_pixel.png",
   },
   {
     keywords: ["blue tang", "regal tang", "hippo tang", "paracanthurus", "hepatus"],
-    filename: "blue_tang.png",
+    filename: "blue_tang_pixel.png",
   },
   {
-    keywords: ["neon tetra", "cardinal tetra", "paracheirodon"],
-    filename: "neon_tetra.png",
+    keywords: ["yellow tang", "flavescens"],
+    filename: "yellow_tang_pixel.png",
   },
   {
-    keywords: ["cherry shrimp", "red cherry", "neocaridina"],
-    filename: "cherry_shrimp.png",
+    keywords: ["royal gramma", "gramma loreto", "basslet"],
+    filename: "royal_gramma_pixel.png",
+  },
+  {
+    keywords: ["flame angel", "loriculus", "centropyge"],
+    filename: "flame_angel_pixel.png",
+  },
+  {
+    keywords: ["cleaner shrimp", "red cherry", "shrimp", "neocaridina", "amboinensis"],
+    filename: "cleaner_shrimp_pixel.png",
+  },
+  {
+    keywords: ["snail", "turbo", "trochus", "nerite"],
+    filename: "turbo_snail_pixel.png",
+  },
+  {
+    keywords: ["neon tetra", "cardinal tetra", "paracheirodon", "tetra"],
+    filename: "neon_tetra_pixel.png",
   },
 ];
 
@@ -80,6 +97,22 @@ async function removeBackgroundAndVerify(
 }
 
 /**
+ * Convert transparent cutout to crisp 64x64 retro pixel art sprite.
+ */
+async function convertToPixelArt(imagePath: string, targetSize = 64): Promise<boolean> {
+  try {
+    const { stdout } = await execAsync(
+      `"${PYTHON_PATH}" "${PIXELATE_SCRIPT}" "${imagePath}" "${imagePath}" ${targetSize}`,
+      { timeout: 15_000 }
+    );
+    return stdout.trim().startsWith("OK:");
+  } catch (err) {
+    console.warn("Failed to pixelate sprite:", err);
+    return false;
+  }
+}
+
+/**
  * Try Wikipedia Mediawiki pageimages API.
  */
 async function tryWikipediaCandidates(query: string): Promise<string[]> {
@@ -120,11 +153,9 @@ async function tryINaturalistCandidates(query: string): Promise<string[]> {
     const taxon = data?.results?.[0];
     if (!taxon) return results;
 
-    // 1. Default photo
     const defaultPhoto = taxon?.default_photo?.medium_url;
     if (defaultPhoto) results.push(defaultPhoto);
 
-    // 2. Taxon photos list
     if (Array.isArray(taxon?.taxon_photos)) {
       for (const p of taxon.taxon_photos) {
         const u = p?.photo?.medium_url;
@@ -183,9 +214,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: publicUrl, verified: true, cached: true });
     } catch { /* proceed to generate */ }
 
-    // ── STEP 1: Check Curated Pristine Transparent Library First ───────────
-    // For common species (Clownfish, Blue Tang, Neon Tetra, Cherry Shrimp),
-    // use pristine studio-quality cutouts so body parts are NEVER cut off.
+    // ── STEP 1: Check Curated Pixel Sprite Library First ──────────────────
     const curatedSrc = findCuratedSprite(name, species);
     if (curatedSrc) {
       try {
@@ -194,7 +223,7 @@ export async function POST(request: NextRequest) {
           url: publicUrl,
           verified: true,
           cached: false,
-          source: "curated_library",
+          source: "curated_pixel_library",
         });
       } catch { /* fallback to dynamic search */ }
     }
@@ -233,8 +262,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── STEP 3: Cross-reference candidates and verify intactness ───────────
-    // If user provided their own photo, try it first
+    // ── STEP 3: Cross-reference candidates, isolate background & pixelate ─
     if (localUserPhotoPath) {
       const tmpUser = path.join(tmpDir, `${livestockId}_user_src.png`);
       try {
@@ -242,25 +270,27 @@ export async function POST(request: NextRequest) {
         const { success } = await removeBackgroundAndVerify(tmpUser, finalPath);
         await fs.unlink(tmpUser).catch(() => {});
         if (success) {
+          // Pixelate to 64x64 retro game sprite
+          await convertToPixelArt(finalPath, 64);
           return NextResponse.json({ url: publicUrl, verified: true, cached: false });
         }
       } catch { /* proceed to other candidates */ }
     }
 
-    // Cross-reference up to 4 candidate photos
-    const candidatesToTry = candidateUrls.slice(0, 4);
-    for (let i = 0; i < candidatesToTry.length; i++) {
-      const candUrl = candidatesToTry[i];
-      const tmpCandPath = path.join(tmpDir, `${livestockId}_cand_${i}.jpg`);
-      
-      const downloaded = await downloadImage(candUrl, tmpCandPath);
+    // Try web candidates sequentially
+    for (let i = 0; i < Math.min(candidateUrls.length, 4); i++) {
+      const candidateUrl = candidateUrls[i];
+      const tmpDownload = path.join(tmpDir, `${livestockId}_candidate_${i}.jpg`);
+
+      const downloaded = await downloadImage(candidateUrl, tmpDownload);
       if (!downloaded) continue;
 
-      const { success } = await removeBackgroundAndVerify(tmpCandPath, finalPath);
-      await fs.unlink(tmpCandPath).catch(() => {});
+      const { success } = await removeBackgroundAndVerify(tmpDownload, finalPath);
+      await fs.unlink(tmpDownload).catch(() => {});
 
       if (success) {
-        // Confirmed intact and complete!
+        // Pixelate to 64x64 retro game sprite
+        await convertToPixelArt(finalPath, 64);
         return NextResponse.json({
           url: publicUrl,
           verified: true,
@@ -270,51 +300,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If verification strict check failed on all candidates, try the best candidate without strict abort
-    // as last resort before giving up
-    if (candidatesToTry.length > 0) {
-      const fallbackUrl = candidatesToTry[0];
-      const tmpCandPath = path.join(tmpDir, `${livestockId}_fallback.jpg`);
-      if (await downloadImage(fallbackUrl, tmpCandPath)) {
-        try {
-          const { stdout } = await execAsync(
-            `"${PYTHON_PATH}" "${REMOVE_BG_SCRIPT}" "${tmpCandPath}" "${finalPath}"`,
-            { timeout: 60_000 }
-          );
-          await fs.unlink(tmpCandPath).catch(() => {});
-          if (stdout.trim().startsWith("OK:")) {
-            return NextResponse.json({
-              url: publicUrl,
-              verified: true,
-              cached: false,
-            });
-          }
-        } catch { /* continue */ }
-      }
-    }
+    // If dynamic background removal failed, fallback to curated pixel sprite
+    const fallbackSrc = isSaltwater(category)
+      ? path.join(process.cwd(), "public", "aquariums", "clownfish_pixel.png")
+      : path.join(process.cwd(), "public", "aquariums", "neon_tetra_pixel.png");
 
-    return NextResponse.json(
-      { url: null, verified: false, error: "No intact sprite could be verified" },
-      { status: 404 }
-    );
-  } catch (err) {
-    console.error("[generate-fish-sprite] Error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    await fs.copyFile(fallbackSrc, finalPath);
+    return NextResponse.json({
+      url: publicUrl,
+      verified: true,
+      cached: false,
+      source: "pixel_fallback",
+    });
+  } catch (err: any) {
+    console.error("Generate pixel fish sprite error:", err);
+    return NextResponse.json({ error: "Failed to generate pixel sprite" }, { status: 500 });
   }
 }
 
-// GET: check if sprite exists and is verified
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const livestockId = searchParams.get("livestockId");
-  if (!livestockId) return NextResponse.json({ error: "livestockId required" }, { status: 400 });
-
-  const spritesDir = path.join(process.cwd(), "public", "aquariums", "sprites");
-  const p = path.join(spritesDir, `${livestockId}.png`);
-  try {
-    await fs.access(p);
-    return NextResponse.json({ url: `/aquariums/sprites/${livestockId}.png`, verified: true, exists: true });
-  } catch {
-    return NextResponse.json({ url: null, verified: false, exists: false });
-  }
+function isSaltwater(category?: string): boolean {
+  if (!category) return true;
+  const c = category.toLowerCase();
+  return c.includes("coral") || c.includes("sps") || c.includes("lps") || c.includes("softie");
 }

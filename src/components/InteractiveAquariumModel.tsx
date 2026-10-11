@@ -16,6 +16,7 @@ import {
   VirtualLivestockItem,
   VirtualTankInhabitantsModal,
 } from "@/components/VirtualTankFauna";
+import PixelTamagotchiTank from "@/components/PixelTamagotchiTank";
 import {
   ChevronLeft,
   ChevronRight,
@@ -895,118 +896,13 @@ export default function InteractiveAquariumModel({
           </div>
 
 
-          {/* Aquarium Interior Viewport (Aspect fitted to volume / formFactor) */}
-          <div className={`relative w-full ${procedural.viewportHeightClass} ${procedural.aspectRatioClass} overflow-hidden select-none`}>
-            {/* ========================================================= */}
-            {/* DEPTH LAYER -1: PROCEDURAL 3D TANK RENDER INTERIOR */}
-            {/* ========================================================= */}
-            <div
-              className="absolute -inset-1 transition-transform duration-300 ease-out"
-              style={{
-                transform: isMotionLocked
-                  ? "none"
-                  : `translate3d(${-tilt.posX * 0.4}px, ${-tilt.posY * 0.4}px, -15px) scale(1.02)`,
-                filter: procedural.waterFilter,
-              }}
-            >
-              <Image
-                src={procedural.bgImage}
-                alt={procedural.archetypeName}
-                fill
-                priority
-                className="object-cover object-center"
-                sizes="(max-width: 896px) 100vw, 896px"
-              />
-            </div>
-
-            {/* Ambient Water Depth Vignette & Glow */}
-            <div
-              className={`absolute inset-0 pointer-events-none transition-colors duration-500 ${procedural.waterTintGradient}`}
-            />
-
-            {/* Shimmering Dynamic Caustics Layer */}
-            <div
-              className="absolute inset-0 pointer-events-none aquarium-caustics-layer mix-blend-screen"
-              style={{ opacity: procedural.causticsOpacity }}
-            />
-
-            {/* Animated Rising Micro-Bubbles */}
-            {procedural.bubbles.position === "left" ? (
-              <div
-                className="absolute bottom-10 left-12 pointer-events-none flex flex-col items-center"
-                style={{ opacity: procedural.bubbles.opacity, transform: `scale(${procedural.bubbles.scale})` }}
-              >
-                <div className="w-1.5 h-1.5 rounded-full border border-teal-200/50 bg-teal-100/30 animate-bubble-1 mb-1.5 shadow-[0_0_4px_rgba(20,235,215,0.6)]" />
-                <div className="w-1 h-1 rounded-full border border-teal-200/60 bg-teal-100/40 animate-bubble-2 mb-2 shadow-[0_0_3px_rgba(20,235,215,0.6)]" />
-                <div className="w-2 h-2 rounded-full border border-teal-200/40 bg-teal-100/20 animate-bubble-3 mb-1 shadow-[0_0_4px_rgba(20,235,215,0.5)]" />
-              </div>
-            ) : procedural.bubbles.position === "right" ? (
-              <div
-                className="absolute bottom-12 right-20 pointer-events-none flex flex-col items-center"
-                style={{ opacity: procedural.bubbles.opacity, transform: `scale(${procedural.bubbles.scale})` }}
-              >
-                <div className="w-1 h-1 rounded-full border border-cyan-200/50 bg-cyan-100/30 animate-bubble-2 mb-2" />
-                <div className="w-1.5 h-1.5 rounded-full border border-cyan-200/60 bg-cyan-100/40 animate-bubble-1 mb-1.5" />
-                <div className="w-1 h-1 rounded-full border border-cyan-200/40 bg-cyan-100/20 animate-bubble-3 mb-1" />
-              </div>
-            ) : (
-              <div
-                className="absolute bottom-11 right-1/3 pointer-events-none flex flex-col items-center"
-                style={{ opacity: procedural.bubbles.opacity, transform: `scale(${procedural.bubbles.scale})` }}
-              >
-                <div className="w-1.5 h-1.5 rounded-full border border-teal-200/50 bg-teal-100/30 animate-bubble-1 mb-1.5" />
-                <div className="w-1 h-1 rounded-full border border-teal-200/60 bg-teal-100/40 animate-bubble-2 mb-2" />
-              </div>
-            )}
-
-            {/* Top Waterline Meniscus Refraction */}
-            <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-b from-white/20 via-[#00d2be]/10 to-transparent pointer-events-none border-t border-white/25" />
-
-
-            {/* ========================================================= */}
-            {/* DEPTH LAYER +1.5: LOGGED ANIMATED VIRTUAL LIVESTOCK       */}
-            {/* ========================================================= */}
-            <div
-              className="absolute inset-0 pointer-events-none overflow-hidden"
-              style={{
-                transform: isMotionLocked
-                  ? "none"
-                  : `translate3d(${tilt.posX * 0.9}px, ${tilt.posY * 0.9}px, 12px)`,
-              }}
-            >
-              {activeVirtualLivestock.map((item, idx) => (
-                <VirtualLivestockItem
-                  key={item.id}
-                  item={item}
-                  index={idx}
-                  formFactor={tank.formFactor || "standard"}
-                  tankId={tank.id}
-                  onRemove={(id) => {
-                    removeLivestockFromVirtualTank(tank.id, id);
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* ========================================================= */}
-            {/* DEPTH LAYER +2: ULTRA-CLEAR RIMLESS GLASS FRONT REFLECTION */}
-            {/* ========================================================= */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-white/[0.07] pointer-events-none" />
-            <div className="absolute inset-0 ring-1 ring-inset ring-white/10 pointer-events-none rounded-2xl" />
-
-            {/* Bottom Glass Seam Bevel */}
-            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-teal-500/20 via-cyan-400/30 to-teal-500/20 pointer-events-none" />
-
-            {/* Cinematic Center Focus Prompt */}
-            {!isFocused && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30">
-                <span className="text-[11px] font-medium tracking-wide text-white/90 bg-black/60 px-3.5 py-1.5 rounded-full border border-white/15 backdrop-blur-md shadow-lg flex items-center gap-1.5">
-                  <Compass size={12} className="text-[#00d2be]" />
-                  Click glass to inspect tank profile
-                </span>
-              </div>
-            )}
-          </div>
+          {/* Pixel Art Tamagotchi Virtual Aquarium Viewport */}
+          <PixelTamagotchiTank
+            tank={tank}
+            activeLivestock={activeVirtualLivestock}
+            onOpenFaunaModal={() => setIsFaunaModalOpen(true)}
+            className="w-full"
+          />
         </div>
       </div>
 
