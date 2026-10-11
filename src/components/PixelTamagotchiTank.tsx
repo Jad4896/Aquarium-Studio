@@ -715,12 +715,26 @@ export default function PixelTamagotchiTank({
             ctx.shadowBlur = 12;
           }
 
+          // Compute aspect-ratio correct dimensions so fish are NEVER squashed or stretched
+          const naturalAspect = (spriteImg.naturalWidth && spriteImg.naturalHeight)
+            ? spriteImg.naturalWidth / spriteImg.naturalHeight
+            : 1.6;
+
+          // Base height on organism type, scale width precisely by natural aspect ratio
+          const targetHeight = fish.isBottomDweller ? 34 : 38;
+          const drawW = Math.round(targetHeight * naturalAspect);
+          const drawH = targetHeight;
+
+          // Keep fish.width and fish.height updated for accurate hover detection
+          fish.width = drawW;
+          fish.height = drawH;
+
           ctx.drawImage(
             spriteImg,
-            -fish.width / 2,
-            -fish.height / 2,
-            fish.width,
-            fish.height
+            -drawW / 2,
+            -drawH / 2,
+            drawW,
+            drawH
           );
         } else {
           // Fallback cute pixel fish geometry
