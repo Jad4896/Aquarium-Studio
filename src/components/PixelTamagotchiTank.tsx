@@ -263,9 +263,9 @@ export default function PixelTamagotchiTank({
           y: startY,
           targetX: startX,
           targetY: startY,
-          speed: 1.2 + Math.random() * 0.8,
-          vx: (Math.random() > 0.5 ? 1 : -1) * (1.0 + Math.random() * 0.5),
-          vy: (Math.random() - 0.5) * 0.4,
+          speed: 0.55 + Math.random() * 0.35,
+          vx: (Math.random() > 0.5 ? 1 : -1) * (0.45 + Math.random() * 0.3),
+          vy: (Math.random() - 0.5) * 0.2,
           facing: Math.random() > 0.5 ? 1 : -1,
           tailWiggle: Math.random() * 10,
           width: isBottom ? 42 : 58,
@@ -373,8 +373,8 @@ export default function PixelTamagotchiTank({
 
     if (clickedFish) {
       // Petting / interacting with fish
-      clickedFish.celebrating = 45; // happy dance for 45 frames
-      clickedFish.vy = -3.0; // happy jump!
+      clickedFish.celebrating = 30; // gentle happy wiggle
+      clickedFish.vy = -0.5; // gentle, relaxed upward nudge
       clickedFish.happiness = Math.min(100, clickedFish.happiness + 10);
 
       particlesRef.current.push({
@@ -528,9 +528,9 @@ export default function PixelTamagotchiTank({
         }
 
         if (nearestFood) {
-          // Accelerate toward food
+          // Gently drift toward food
           const angle = Math.atan2(nearestFood.y - fish.y, nearestFood.x - fish.x);
-          const chaseSpeed = fish.speed * 1.6;
+          const chaseSpeed = fish.speed * 1.15; // Smooth relaxed glide toward food
           fish.vx = Math.cos(angle) * chaseSpeed;
           fish.vy = Math.sin(angle) * chaseSpeed;
           fish.facing = fish.vx >= 0 ? 1 : -1;
@@ -540,7 +540,9 @@ export default function PixelTamagotchiTank({
             nearestFood.eaten = true;
             fish.hunger = Math.max(0, fish.hunger - 25);
             fish.happiness = Math.min(100, fish.happiness + 8);
-            fish.celebrating = 30;
+            fish.celebrating = 20;
+            // No vertical jump - maintain gentle swimming momentum
+            fish.vy = (Math.random() - 0.5) * 0.2;
 
             if (soundEnabled) playRetroChime("eat");
 
@@ -551,20 +553,20 @@ export default function PixelTamagotchiTank({
               text: "❤️ Yum!",
               color: "#fbbf24",
               alpha: 1.0,
-              vy: -1.2,
-              vx: (Math.random() - 0.5) * 0.4,
+              vy: -0.8,
+              vx: (Math.random() - 0.5) * 0.3,
             });
           }
         } else {
           // Normal ambient wandering behavior
           if (fish.celebrating > 0) {
             fish.celebrating--;
-            fish.vy += 0.18; // gravity back to swim lane
+            // Subtle tail wiggle, no crazy gravity leaps
           } else {
-            // Random direction shift occasionally
-            if (frameCount % 90 === 0 && Math.random() < 0.4) {
-              fish.vx = (Math.random() > 0.5 ? 1 : -1) * (0.8 + Math.random() * 0.8);
-              fish.vy = (Math.random() - 0.5) * 0.5;
+            // Smooth occasional gentle direction change
+            if (frameCount % 120 === 0 && Math.random() < 0.35) {
+              fish.vx = (Math.random() > 0.5 ? 1 : -1) * (0.35 + Math.random() * 0.35);
+              fish.vy = (Math.random() - 0.5) * 0.2;
             }
           }
 

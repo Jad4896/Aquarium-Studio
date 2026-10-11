@@ -351,39 +351,8 @@ export default function InteractiveAquariumModel({
     const el = tankVesselAreaRef.current;
     if (!el) return;
 
-    let lastScrollTime = 0;
-
-    const onWheel = (e: WheelEvent) => {
-      // Don't intercept if inside any modal, dropdown, or text input
-      const target = e.target as HTMLElement | null;
-      if (
-        target?.closest(
-          '[data-no-carousel-scroll], .overflow-y-auto, .overflow-auto, [role="listbox"], input, textarea, select'
-        )
-      ) {
-        return;
-      }
-
-      // CRITICAL: Prevent the webpage from scrolling when the mouse is over the virtual tank
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (totalTanks <= 1) return;
-
-      const now = Date.now();
-      if (now - lastScrollTime < 380) return; // Debounce 380ms for crisp, responsive tank switching
-
-      if (Math.abs(e.deltaX) > 15 || Math.abs(e.deltaY) > 15) {
-        if (e.deltaX > 15 || e.deltaY > 15) {
-          if (onNextTank) onNextTank();
-          lastScrollTime = now;
-        } else if (e.deltaX < -15 || e.deltaY < -15) {
-          if (onPrevTank) onPrevTank();
-          lastScrollTime = now;
-        }
-      }
-    };
-
+    // Note: Wheel scroll cycling removed to prevent accidental tank switching.
+    // Tank cycling is cleanly controlled via the explicit Previous/Next buttons and the tank selector.
     let touchStartX: number | null = null;
     const onTouchStart = (e: TouchEvent) => {
       touchStartX = e.touches[0].clientX;
@@ -401,12 +370,10 @@ export default function InteractiveAquariumModel({
       touchStartX = null;
     };
 
-    el.addEventListener("wheel", onWheel, { passive: false });
     el.addEventListener("touchstart", onTouchStart, { passive: true });
     el.addEventListener("touchend", onTouchEnd, { passive: true });
 
     return () => {
-      el.removeEventListener("wheel", onWheel);
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchend", onTouchEnd);
     };
@@ -851,11 +818,10 @@ export default function InteractiveAquariumModel({
         {/* Main 3D Rimless Tank Chassis */}
         <div
           ref={containerRef}
-          onClick={onTankClick}
           onMouseMove={handleMouseMove}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          className={`group relative w-full rounded-2xl overflow-hidden cursor-pointer transition-all duration-500 ease-out border ${
+          className={`group relative w-full rounded-2xl overflow-hidden transition-all duration-500 ease-out border ${
             isFocused
               ? "border-[#00d2be]/80 shadow-[0_25px_70px_rgba(0,210,190,0.25)] scale-[1.03] ring-1 ring-[#00d2be]/40"
               : "border-white/15 hover:border-[#00d2be]/60 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] hover:shadow-[0_25px_60px_rgba(0,210,190,0.18)] scale-100"

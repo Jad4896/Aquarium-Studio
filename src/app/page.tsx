@@ -67,6 +67,7 @@ import {
   ShieldCheck,
   Type,
   Activity,
+  Sliders,
 } from "lucide-react";
 
 export type TabId =
@@ -897,6 +898,27 @@ export default function SinglePageAquariumDashboard() {
                 </span>
               </button>
             )}
+
+            {/* Tank Specs & System Profile Button */}
+            <button
+              onClick={() => {
+                if (isTankFocused && activeTab === "profile") {
+                  handleCloseOverlay();
+                } else {
+                  setIsTankFocused(true);
+                  setActiveTab("profile");
+                }
+              }}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full border text-xs font-semibold transition-all shadow-sm cursor-pointer shrink-0 ${
+                activeTab === "profile" && isTankFocused
+                  ? "bg-[#00d2be] text-[#0b0f17] border-[#00d2be] shadow-[0_0_12px_rgba(0,210,190,0.4)]"
+                  : "bg-white/[0.04] hover:bg-[#00d2be]/15 border-white/10 hover:border-[#00d2be]/50 text-[#f0f4f8] hover:text-[#00d2be]"
+              }`}
+              title="View and edit aquarium profile, specifications, equipment, and water volume"
+            >
+              <Sliders size={12} className="shrink-0" />
+              <span>Specs & Profile</span>
+            </button>
 
             {/* Add Tank Button */}
             <button
