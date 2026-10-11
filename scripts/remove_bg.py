@@ -8,43 +8,47 @@ Writes a transparent-background PNG to output_path.
 import sys
 import os
 
-def check_intactness(arr):
+def isolate_primary_subject(arr):
     import numpy as np
+    from scipy import ndimage
     alpha = arr[:, :, 3]
     h, w = alpha.shape
     mask = alpha > 40
-    opaque = np.sum(mask)
-    if opaque < 1000:
-        return False, "Subject is too small or hollow"
-    
-    rows = np.any(mask, axis=1)
-    cols = np.any(mask, axis=0)
-    if not np.any(rows) or not np.any(cols):
-        return False, "Empty subject"
-        
+
+    # Label connected components
+    labeled, num_features = ndimage.label(mask)
+    if num_features == 0:
+        return arr, False, "No opaque subject detected"
+
+    # Find size of each component
+    sizes = ndimage.sum(mask, labeled, range(1, num_features + 1))
+    if len(sizes) == 0 or max(sizes) < 400:
+        return arr, False, "Subject is too small or transparent"
+
+    # Find largest component
+    max_label = np.argmax(sizes) + 1
+    primary_mask = labeled == max_label
+
+    # Filter out secondary noise/other fish by zeroing out non-primary pixels
+    isolated_arr = np.copy(arr)
+    isolated_arr[~primary_mask] = [0, 0, 0, 0]
+
+    # Crop to bounding box of primary component
+    rows = np.any(primary_mask, axis=1)
+    cols = np.any(primary_mask, axis=0)
     ymin, ymax = np.where(rows)[0][[0, -1]]
     xmin, xmax = np.where(cols)[0][[0, -1]]
-    
-    # Check if subject was truncated by the outer image boundary
-    # If the boundary of the image slices through a large number of opaque pixels,
-    # the fish's head/tail was cut off in the camera frame.
-    touches = [
-        np.sum(mask[0, :]) / w if ymin == 0 else 0,
-        np.sum(mask[-1, :]) / w if ymax == h - 1 else 0,
-        np.sum(mask[:, 0]) / h if xmin == 0 else 0,
-        np.sum(mask[:, -1]) / h if xmax == w - 1 else 0,
-    ]
-    max_touch = max(touches)
-    if max_touch > 0.05:
-        return False, f"Subject truncated by photo boundary ({max_touch:.1%})"
-        
-    # Check fill ratio inside bounding box
-    bbox_area = (ymax - ymin + 1) * (xmax - xmin + 1)
-    fill_ratio = opaque / bbox_area
-    if fill_ratio < 0.20:
-        return False, f"Subject is fragmented or hollow (fill={fill_ratio:.1%})"
 
-    return True, "Subject intact"
+    # Ensure valid bounding box
+    cropped_arr = isolated_arr[ymin:ymax+1, xmin:xmax+1]
+
+    # Check fill ratio on the isolated single organism
+    bbox_area = (ymax - ymin + 1) * (xmax - xmin + 1)
+    fill_ratio = np.sum(primary_mask) / max(1, bbox_area)
+    if fill_ratio < 0.12:
+        return cropped_arr, False, f"Subject too sparse or fragmented (fill={fill_ratio:.1%})"
+
+    return cropped_arr, True, "Subject intact"
 
 def main():
     if len(sys.argv) < 3:
@@ -78,13 +82,15 @@ def main():
 
         arr = np.array(img)
 
-        if verify_intactness:
-            is_intact, reason = check_intactness(arr)
-            if not is_intact:
-                print(f"REJECTED:{reason}", file=sys.stderr)
-                sys.exit(2) # Code 2 means rejected quality check
+        # Extract dominant single organism and verify
+        isolated_arr, is_intact, reason = isolate_primary_subject(arr)
 
-        img.save(output_path, "PNG")
+        if verify_intactness and not is_intact:
+            print(f"REJECTED:{reason}", file=sys.stderr)
+            sys.exit(2)
+
+        out_img = Image.fromarray(isolated_arr)
+        out_img.save(output_path, "PNG")
         print(f"OK:{output_path}")
         sys.exit(0)
     except Exception as e:

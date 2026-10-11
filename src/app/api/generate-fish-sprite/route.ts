@@ -149,6 +149,38 @@ async function tryWikipediaCandidates(query: string): Promise<string[]> {
 }
 
 /**
+ * Search Wikimedia Commons for high-quality specimen photos.
+ */
+async function tryWikimediaCommonsCandidates(query: string): Promise<string[]> {
+  const results: string[] = [];
+  try {
+    const url =
+      `https://commons.wikimedia.org/w/api.php?action=query` +
+      `&generator=search` +
+      `&gsrsearch=${encodeURIComponent(query)}` +
+      `&gsrnamespace=6` +
+      `&prop=imageinfo` +
+      `&iiprop=url` +
+      `&iiurlwidth=800` +
+      `&format=json` +
+      `&origin=*`;
+    const res = await fetchWithTimeout(url, 8000);
+    if (!res.ok) return results;
+    const data = await res.json();
+    const pages = Object.values(data?.query?.pages || {}) as any[];
+    for (const page of pages) {
+      const info = page?.imageinfo?.[0];
+      const thumb = info?.thumburl || info?.url;
+      if (thumb && !results.includes(thumb)) {
+        results.push(thumb);
+      }
+      if (results.length >= 4) break;
+    }
+  } catch { /* continue */ }
+  return results;
+}
+
+/**
  * Try iNaturalist search and observation photos for multiple candidates.
  */
 async function tryINaturalistCandidates(query: string): Promise<string[]> {
@@ -261,7 +293,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 2c. iNaturalist candidates
+    // 2c. Wikimedia Commons high-resolution specimens
+    const commonsUrls = await tryWikimediaCommonsCandidates(species || name);
+    for (const u of commonsUrls) {
+      if (!candidateUrls.includes(u)) candidateUrls.push(u);
+    }
+
+    // 2d. iNaturalist candidates
     const inatSearchTerms = species ? [species, name] : [name];
     for (const term of inatSearchTerms) {
       const inatUrls = await tryINaturalistCandidates(term);
