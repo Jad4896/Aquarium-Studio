@@ -41,6 +41,10 @@ const CURATED_SPRITES: Array<{ keywords: string[]; filename: string }> = [
     filename: "flame_angel_pixel.png",
   },
   {
+    keywords: ["yellow assessor", "assessor", "flavissimus"],
+    filename: "yellow_assessor_pixel.png",
+  },
+  {
     keywords: ["cherry shrimp", "red cherry", "neocaridina"],
     filename: "cherry_shrimp_pixel.png",
   },

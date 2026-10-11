@@ -95,6 +95,9 @@ function getPixelSpriteForLivestock(item: Livestock, isFreshwater: boolean): str
   if (combined.includes("flame angel") || combined.includes("loriculus")) {
     return "/aquariums/flame_angel_pixel.png";
   }
+  if (combined.includes("yellow assessor") || combined.includes("assessor") || combined.includes("flavissimus")) {
+    return "/aquariums/yellow_assessor_pixel.png";
+  }
   if (combined.includes("cherry shrimp") || combined.includes("neocaridina") || (isFreshwater && combined.includes("shrimp"))) {
     return "/aquariums/cherry_shrimp_pixel.png";
   }
@@ -106,6 +109,11 @@ function getPixelSpriteForLivestock(item: Livestock, isFreshwater: boolean): str
   }
   if (combined.includes("tetra") || combined.includes("neon") || combined.includes("cardinal") || combined.includes("paracheirodon")) {
     return "/aquariums/neon_tetra_pixel.png";
+  }
+
+  // Check if a dynamically generated sprite exists for this livestock ID
+  if (item.id) {
+    return `/aquariums/sprites/${item.id}.png`;
   }
 
   // Fallback defaults
