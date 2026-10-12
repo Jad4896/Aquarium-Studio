@@ -57,6 +57,10 @@ const CURATED_SPRITES: Array<{ keywords: string[]; filename: string }> = [
     filename: "tailspot_blenny_pixel.png",
   },
   {
+    keywords: ["yellow clown goby", "clown goby", "okinawae", "gobiodon", "yellow goby"],
+    filename: "yellow_clown_goby_pixel.png",
+  },
+  {
     keywords: ["tuxedo urchin", "urchin", "mespilia", "globulus", "sea urchin"],
     filename: "tuxedo_urchin_pixel.png",
   },
@@ -92,15 +96,17 @@ async function fetchWithTimeout(url: string, ms = TIMEOUT_MS): Promise<Response>
 }
 
 /**
- * Run rembg via Python helper script to remove background and verify intactness.
+ * Run rembg via Python helper script to remove background and verify intactness, side-profile, and color accuracy.
  */
 async function removeBackgroundAndVerify(
   inputPath: string,
-  outputPath: string
+  outputPath: string,
+  name?: string
 ): Promise<{ success: boolean; reason?: string }> {
   try {
+    const nameArg = name ? ` --name "${name.replace(/"/g, "")}"` : "";
     const { stdout, stderr } = await execAsync(
-      `"${PYTHON_PATH}" "${REMOVE_BG_SCRIPT}" "${inputPath}" "${outputPath}" --verify`,
+      `"${PYTHON_PATH}" "${REMOVE_BG_SCRIPT}" "${inputPath}" "${outputPath}" --verify${nameArg}`,
       { timeout: 60_000 }
     );
     if (stdout.trim().startsWith("OK:")) {
@@ -321,7 +327,7 @@ export async function POST(request: NextRequest) {
       const tmpUser = path.join(tmpDir, `${livestockId}_user_src.png`);
       try {
         await fs.copyFile(localUserPhotoPath, tmpUser);
-        const { success } = await removeBackgroundAndVerify(tmpUser, finalPath);
+        const { success } = await removeBackgroundAndVerify(tmpUser, finalPath, name);
         await fs.unlink(tmpUser).catch(() => {});
         if (success) {
           // Pixelate to 64x64 retro game sprite
@@ -339,7 +345,7 @@ export async function POST(request: NextRequest) {
       const downloaded = await downloadImage(candidateUrl, tmpDownload);
       if (!downloaded) continue;
 
-      const { success } = await removeBackgroundAndVerify(tmpDownload, finalPath);
+      const { success } = await removeBackgroundAndVerify(tmpDownload, finalPath, name);
       await fs.unlink(tmpDownload).catch(() => {});
 
       if (success) {

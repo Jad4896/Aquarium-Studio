@@ -105,6 +105,9 @@ function getPixelSpriteForLivestock(item: Livestock, isFreshwater: boolean): str
   if (combined.includes("tailspot blenny") || combined.includes("blenny") || combined.includes("ecsenius") || combined.includes("stigmatura")) {
     return "/aquariums/tailspot_blenny_pixel.png";
   }
+  if (combined.includes("yellow clown goby") || combined.includes("clown goby") || combined.includes("okinawae") || combined.includes("gobiodon")) {
+    return "/aquariums/yellow_clown_goby_pixel.png";
+  }
   if (combined.includes("cherry shrimp") || combined.includes("neocaridina") || (isFreshwater && combined.includes("shrimp"))) {
     return "/aquariums/cherry_shrimp_pixel.png";
   }
