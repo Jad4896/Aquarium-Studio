@@ -292,6 +292,9 @@ export default function PixelTamagotchiTank({
           spriteUrl,
           isBottomDweller: isBottom || isPercher,
           behaviorType,
+          perchTimer: prev.perchTimer ?? (isPercher ? 240 : 0),
+          targetX: prev.targetX ?? prev.x,
+          targetY: prev.targetY ?? prev.y,
         });
       } else {
         const startX = 120 + (idx * 150) % 640;
@@ -627,7 +630,12 @@ export default function PixelTamagotchiTank({
       // ── 5. UPDATE & DRAW FISH ENTITIES ────────────────────────────────────
       const fishes = fishEntitiesRef.current;
       for (const fish of fishes) {
-        fish.tailWiggle += 0.15;
+        const isStationaryPercher = fish.behaviorType === "percher" && fish.perchTimer > 0;
+        if (!isStationaryPercher) {
+          fish.tailWiggle += fish.behaviorType === "percher" ? 0.08 : 0.12;
+        } else {
+          fish.tailWiggle = 0;
+        }
 
         // Hunt closest food pellet if hungry
         let nearestFood: FoodPellet | null = null;
@@ -649,11 +657,13 @@ export default function PixelTamagotchiTank({
           // Very gentle micro-hover in place, no translational movement
           fish.vx = 0;
           fish.vy = 0;
-          fish.tailWiggle += 0.05; // Gentle fin flutter while paused
+          if (!isStationaryPercher) {
+            fish.tailWiggle += 0.03; // Gentle fin flutter while paused
+          }
         } else if (nearestFood) {
           // Gently drift toward food
           const angle = Math.atan2(nearestFood.y - fish.y, nearestFood.x - fish.x);
-          const chaseSpeed = fish.speed * 1.15; // Smooth relaxed glide toward food
+          const chaseSpeed = fish.behaviorType === "percher" ? 0.55 : fish.speed * 1.15; // Smooth relaxed glide toward food
           fish.vx = Math.cos(angle) * chaseSpeed;
           fish.vy = Math.sin(angle) * chaseSpeed;
           fish.facing = fish.vx >= 0 ? 1 : -1;
@@ -665,7 +675,7 @@ export default function PixelTamagotchiTank({
             fish.happiness = Math.min(100, fish.happiness + 8);
             fish.celebrating = 20;
             // No vertical jump - maintain gentle swimming momentum
-            fish.vy = (Math.random() - 0.5) * 0.2;
+            fish.vy = (Math.random() - 0.5) * 0.15;
 
             if (soundEnabled) playRetroChime("eat");
 
@@ -679,37 +689,62 @@ export default function PixelTamagotchiTank({
               vy: -0.8,
               vx: (Math.random() - 0.5) * 0.3,
             });
+
+            // If percher, gently return to a perch on rocks/substrate after eating
+            if (fish.behaviorType === "percher") {
+              fish.targetX = Math.max(130, Math.min(W - 140, fish.x + (Math.random() - 0.5) * 80));
+              fish.targetY = 345 + Math.random() * 55;
+              fish.perchTimer = 0; // Trigger slow relocation to perch
+            }
           }
         } else if (fish.behaviorType === "percher") {
           // ── PERCHER ECOLOGY (Blennies, Gobies, Hawkfish) ───────────────────
-          // Perchers naturally rest stationary on rocks/sandbed and do short darting hops
+          // Perchers naturally rest stationary on rocks/sandbed and move slowly to a new perch point
           if (fish.perchTimer > 0) {
+            // 1. STAYING STILL WHEN PERCHING: completely stationary, zero bobbing
             fish.perchTimer--;
             fish.vx = 0;
             fish.vy = 0;
-            // Gentle alert head bob / fin flutter
-            fish.tailWiggle += 0.04;
+            fish.tailWiggle = 0; // Frozen, staying completely still
+
+            if (fish.perchTimer <= 0) {
+              // Time to pick a new rock perch spot (y: 340 to 405)
+              fish.targetX = 130 + Math.random() * 620;
+              fish.targetY = 345 + Math.random() * 60;
+            }
           } else {
-            // Pick a new rock perch spot (y: 330 to 410) and do a quick hop
-            const targetPerchX = 130 + Math.random() * 620;
-            const targetPerchY = 340 + Math.random() * 65;
-            const hopDist = targetPerchX - fish.x;
-            fish.facing = hopDist >= 0 ? 1 : -1;
-            fish.vx = (hopDist >= 0 ? 1 : -1) * (0.8 + Math.random() * 0.4);
-            fish.vy = (targetPerchY - fish.y) * 0.05;
-            // Hop duration before resting again
-            fish.perchTimer = 180 + Math.floor(Math.random() * 240); // Rest for 3-7 seconds
+            // 2. MOVE SLOWLY IF MOVING TO A NEW PERCH POINT
+            const dx = (fish.targetX ?? fish.x) - fish.x;
+            const dy = (fish.targetY ?? fish.y) - fish.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < 4) {
+              // Arrived at new perch: settle down and stay still!
+              fish.x = fish.targetX ?? fish.x;
+              fish.y = fish.targetY ?? fish.y;
+              fish.vx = 0;
+              fish.vy = 0;
+              fish.tailWiggle = 0;
+              // Stay still on this perch for 5 to 10 seconds (300 to 600 frames at 60fps)
+              fish.perchTimer = 300 + Math.floor(Math.random() * 300);
+            } else {
+              // Move SLOWLY and steadily to the new perch point
+              const slowSpeed = 0.38;
+              fish.vx = (dx / dist) * slowSpeed;
+              fish.vy = (dy / dist) * slowSpeed;
+              fish.facing = fish.vx >= 0 ? 1 : -1;
+            }
           }
 
           // Restrict percher vertical boundary strictly to rocks & substrate
-          const topBound = 320;
+          const topBound = 330;
           const bottomBound = H - 70;
           if (fish.y < topBound) {
             fish.y = topBound;
-            fish.vy = Math.abs(fish.vy);
+            fish.vy = 0;
           } else if (fish.y > bottomBound) {
             fish.y = bottomBound;
-            fish.vy = -Math.abs(fish.vy);
+            fish.vy = 0;
           }
         } else {
           // Normal ambient wandering behavior
@@ -761,8 +796,22 @@ export default function PixelTamagotchiTank({
 
         // ── RENDER FISH SPRITE ───────────────────────────────────────────────
         ctx.save();
+        const isSnailOrUrchin = fish.isBottomDweller && (
+          fish.spriteUrl.includes("urchin") || fish.spriteUrl.includes("snail")
+        );
+
+        // Bobbing up/down:
+        // - Stationary perchers: 0 (stays completely still on its perch!)
+        // - Snails & Urchins: 0 (crawls along substrate without swimming bob)
+        // - Moving percher: 0.3px (subtle)
+        // - Hovered fish: 0.5px
+        // - Normal swimmer: 1.2px
+        const bobAmp = (isStationaryPercher || isSnailOrUrchin)
+          ? 0
+          : (fish.behaviorType === "percher" ? 0.3 : (isHovered ? 0.5 : 1.2));
+
         const drawX = Math.round(fish.x);
-        const drawY = Math.round(fish.y + Math.sin(fish.tailWiggle) * (isHovered ? 1.0 : 2.2));
+        const drawY = Math.round(fish.y + Math.sin(fish.tailWiggle) * bobAmp);
 
         ctx.translate(drawX, drawY);
 
@@ -771,8 +820,14 @@ export default function PixelTamagotchiTank({
           ctx.scale(-1, 1);
         }
 
-        // Slight playful wiggle rotation
-        const wiggleAngle = Math.sin(fish.tailWiggle) * (isHovered ? 0.03 : 0.06);
+        // Slight rotation wiggle:
+        // - Stationary perchers: 0 (rests flat/upright on rock, no wiggling)
+        // - Snails & Urchins: 0
+        // - Moving fish: subtle
+        const wiggleAngle = (isStationaryPercher || isSnailOrUrchin)
+          ? 0
+          : Math.sin(fish.tailWiggle) * (isHovered ? 0.015 : 0.03);
+
         ctx.rotate(wiggleAngle);
 
         const spriteImg = loadedSpritesRef.current.get(fish.spriteUrl);
