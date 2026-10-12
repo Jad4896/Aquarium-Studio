@@ -111,7 +111,10 @@ function getPixelSpriteForLivestock(item: Livestock, isFreshwater: boolean): str
   if (combined.includes("shrimp") || combined.includes("cleaner") || combined.includes("amboinensis")) {
     return "/aquariums/cleaner_shrimp_pixel.png";
   }
-  if (combined.includes("snail") || combined.includes("turbo") || combined.includes("trochus") || combined.includes("nerite") || combined.includes("urchin")) {
+  if (combined.includes("urchin") || combined.includes("mespilia") || combined.includes("globulus")) {
+    return "/aquariums/tuxedo_urchin_pixel.png";
+  }
+  if (combined.includes("snail") || combined.includes("turbo") || combined.includes("trochus") || combined.includes("nerite")) {
     return "/aquariums/turbo_snail_pixel.png";
   }
   if (combined.includes("tetra") || combined.includes("neon") || combined.includes("cardinal") || combined.includes("paracheirodon")) {
