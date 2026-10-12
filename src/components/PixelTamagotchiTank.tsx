@@ -279,8 +279,8 @@ export default function PixelTamagotchiTank({
           vy: (Math.random() - 0.5) * 0.2,
           facing: Math.random() > 0.5 ? 1 : -1,
           tailWiggle: Math.random() * 10,
-          width: isBottom ? 42 : 58,
-          height: isBottom ? 34 : 40,
+          width: isBottom ? 34 : 46,
+          height: isBottom ? 27 : 32,
           isBottomDweller: isBottom,
           hunger: 30,
           happiness: 95,
@@ -720,8 +720,8 @@ export default function PixelTamagotchiTank({
             ? spriteImg.naturalWidth / spriteImg.naturalHeight
             : 1.6;
 
-          // Base height on organism type, scale width precisely by natural aspect ratio
-          const targetHeight = fish.isBottomDweller ? 34 : 38;
+          // Base height on organism type (reduced by 20% from 38/34 down to 30/27), scale width precisely by natural aspect ratio
+          const targetHeight = fish.isBottomDweller ? 27 : 30;
           const drawW = Math.round(targetHeight * naturalAspect);
           const drawH = targetHeight;
 
@@ -737,13 +737,15 @@ export default function PixelTamagotchiTank({
             drawH
           );
         } else {
-          // Fallback cute pixel fish geometry
+          // Fallback cute pixel fish geometry (reduced by 20%)
+          const fbW = fish.isBottomDweller ? 34 : 46;
+          const fbH = fish.isBottomDweller ? 27 : 32;
           ctx.fillStyle = fish.isBottomDweller ? "#e11d48" : "#f97316";
-          ctx.fillRect(-fish.width / 2, -fish.height / 2, fish.width, fish.height);
+          ctx.fillRect(-fbW / 2, -fbH / 2, fbW, fbH);
           ctx.fillStyle = "#ffffff";
-          ctx.fillRect(fish.width / 4, -fish.height / 4, 4, 4);
+          ctx.fillRect(fbW / 4, -fbH / 4, 3, 3);
           ctx.fillStyle = "#000000";
-          ctx.fillRect(fish.width / 4 + 1, -fish.height / 4 + 1, 2, 2);
+          ctx.fillRect(fbW / 4 + 1, -fbH / 4 + 1, 1, 1);
         }
 
         ctx.restore();
