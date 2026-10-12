@@ -69,8 +69,8 @@ interface FishEntity {
   width: number;
   height: number;
   isBottomDweller: boolean;
-  behaviorType: "percher" | "bottom" | "swimmer";
-  perchTimer: number; // frames to stay perched on rock/sandbed
+  behaviorType: "percher" | "crawler" | "bottom" | "swimmer";
+  perchTimer: number; // frames to stay perched/resting
   perchX?: number;
   perchY?: number;
   hunger: number;
@@ -270,16 +270,27 @@ export default function PixelTamagotchiTank({
         combinedMeta.includes("hawkfish") ||
         combinedMeta.includes("perch");
 
-      // 2. Bottom dwellers (Shrimps, Snails, Crabs, Urchins, Sand sifters)
-      const isBottom =
-        combinedMeta.includes("shrimp") ||
-        combinedMeta.includes("snail") ||
-        combinedMeta.includes("crab") ||
+      // 2. Slow Crawlers (Urchins, Snails) - stay resting/grazing in place for long periods, crawl at glacial pace
+      const isCrawler =
         combinedMeta.includes("urchin") ||
+        combinedMeta.includes("mespilia") ||
+        combinedMeta.includes("globulus") ||
+        combinedMeta.includes("snail") ||
+        combinedMeta.includes("turbo") ||
+        combinedMeta.includes("trochus") ||
+        combinedMeta.includes("nerite");
+
+      // 3. Active bottom dwellers (Shrimps, Crabs, Sand sifters)
+      const isBottom =
+        isCrawler ||
+        combinedMeta.includes("shrimp") ||
+        combinedMeta.includes("crab") ||
         combinedMeta.includes("sandbed");
 
-      const behaviorType: "percher" | "bottom" | "swimmer" = isPercher
+      const behaviorType: "percher" | "crawler" | "bottom" | "swimmer" = isPercher
         ? "percher"
+        : isCrawler
+        ? "crawler"
         : isBottom
         ? "bottom"
         : "swimmer";
@@ -292,14 +303,17 @@ export default function PixelTamagotchiTank({
           spriteUrl,
           isBottomDweller: isBottom || isPercher,
           behaviorType,
-          perchTimer: prev.perchTimer ?? (isPercher ? 240 : 0),
+          perchTimer: prev.perchTimer ?? (isCrawler ? 900 : isPercher ? 240 : 0),
           targetX: prev.targetX ?? prev.x,
           targetY: prev.targetY ?? prev.y,
         });
       } else {
         const startX = 120 + (idx * 150) % 640;
         // Perchers rest on the lower rock shelf / sandbed (y: 330 to 410)
-        const startY = isPercher
+        // Crawlers stay firmly along the bottom substrate (y: 380 to 415)
+        const startY = isCrawler
+          ? 385 + (idx % 3) * 12
+          : isPercher
           ? 340 + (idx % 3) * 25
           : isBottom
           ? 375 + (idx % 3) * 18
@@ -313,16 +327,20 @@ export default function PixelTamagotchiTank({
           y: startY,
           targetX: startX,
           targetY: startY,
-          speed: isPercher ? 0.35 : 0.55 + Math.random() * 0.35,
-          vx: isPercher ? 0 : (Math.random() > 0.5 ? 1 : -1) * (0.45 + Math.random() * 0.3),
+          speed: isCrawler ? 0.09 : isPercher ? 0.35 : 0.55 + Math.random() * 0.35,
+          vx: 0,
           vy: 0,
           facing: Math.random() > 0.5 ? 1 : -1,
-          tailWiggle: Math.random() * 10,
+          tailWiggle: 0,
           width: isBottom ? 36 : isPercher ? 46 : 48,
           height: isBottom ? 28 : isPercher ? 32 : 32,
           isBottomDweller: isBottom || isPercher,
           behaviorType,
-          perchTimer: isPercher ? 120 + Math.floor(Math.random() * 180) : 0,
+          perchTimer: isCrawler
+            ? 900 + Math.floor(Math.random() * 900)
+            : isPercher
+            ? 240 + Math.floor(Math.random() * 180)
+            : 0,
           perchX: startX,
           perchY: startY,
           hunger: 30,
@@ -631,21 +649,39 @@ export default function PixelTamagotchiTank({
       const fishes = fishEntitiesRef.current;
       for (const fish of fishes) {
         const isStationaryPercher = fish.behaviorType === "percher" && fish.perchTimer > 0;
-        if (!isStationaryPercher) {
+        const isCrawler = fish.behaviorType === "crawler";
+        const isStationaryCrawler = isCrawler && fish.perchTimer > 0;
+
+        if (!isStationaryPercher && !isCrawler) {
           fish.tailWiggle += fish.behaviorType === "percher" ? 0.08 : 0.12;
         } else {
           fish.tailWiggle = 0;
         }
 
         // Hunt closest food pellet if hungry
+        // Crawlers (Urchins & Snails) do not chase falling flakes in the water column
+        const huntsFood = !isCrawler;
         let nearestFood: FoodPellet | null = null;
         let minDist = 350;
 
-        for (const pellet of activeFood) {
-          const dist = Math.hypot(pellet.x - fish.x, pellet.y - fish.y);
-          if (dist < minDist) {
-            minDist = dist;
-            nearestFood = pellet;
+        if (huntsFood) {
+          for (const pellet of activeFood) {
+            const dist = Math.hypot(pellet.x - fish.x, pellet.y - fish.y);
+            if (dist < minDist) {
+              minDist = dist;
+              nearestFood = pellet;
+            }
+          }
+        } else {
+          // If a flake lands directly on/beside an urchin on the substrate, graze on it
+          for (const pellet of activeFood) {
+            const dist = Math.hypot(pellet.x - fish.x, pellet.y - fish.y);
+            if (dist < 18) {
+              pellet.eaten = true;
+              fish.hunger = Math.max(0, fish.hunger - 20);
+              fish.happiness = Math.min(100, fish.happiness + 5);
+              if (soundEnabled) playRetroChime("eat");
+            }
           }
         }
 
@@ -657,7 +693,7 @@ export default function PixelTamagotchiTank({
           // Very gentle micro-hover in place, no translational movement
           fish.vx = 0;
           fish.vy = 0;
-          if (!isStationaryPercher) {
+          if (!isStationaryPercher && !isCrawler) {
             fish.tailWiggle += 0.03; // Gentle fin flutter while paused
           }
         } else if (nearestFood) {
@@ -746,6 +782,58 @@ export default function PixelTamagotchiTank({
             fish.y = bottomBound;
             fish.vy = 0;
           }
+        } else if (fish.behaviorType === "crawler") {
+          // ── CRAWLER ECOLOGY (Sea Urchins & Snails) ─────────────────────────
+          // Urchins and snails spend the vast majority of their time stationary,
+          // grazing in one spot, and crawl at a very slow glacial pace when relocating.
+          if (fish.perchTimer > 0) {
+            // Stationary grazing: staying completely still on rock/substrate
+            fish.perchTimer--;
+            fish.vx = 0;
+            fish.vy = 0;
+            fish.tailWiggle = 0;
+
+            if (fish.perchTimer <= 0) {
+              // Pick a new nearby grazing spot on substrate or lower rocks
+              const moveRange = 35 + Math.random() * 55;
+              const dir = Math.random() > 0.5 ? 1 : -1;
+              fish.targetX = Math.max(100, Math.min(W - 120, fish.x + dir * moveRange));
+              fish.targetY = 380 + Math.random() * 35;
+            }
+          } else {
+            // Glacial, realistic crawl to new grazing spot
+            const dx = (fish.targetX ?? fish.x) - fish.x;
+            const dy = (fish.targetY ?? fish.y) - fish.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < 3) {
+              // Arrived at grazing spot: stay completely still for 15-30 seconds!
+              fish.x = fish.targetX ?? fish.x;
+              fish.y = fish.targetY ?? fish.y;
+              fish.vx = 0;
+              fish.vy = 0;
+              fish.tailWiggle = 0;
+              // Rest for 900 - 1800 frames (15 to 30 seconds at 60fps)
+              fish.perchTimer = 900 + Math.floor(Math.random() * 900);
+            } else {
+              // Ultra-slow, realistic crawl speed (0.08 px/frame = ~4.8 px/second)
+              const crawlSpeed = 0.08;
+              fish.vx = (dx / dist) * crawlSpeed;
+              fish.vy = (dy / dist) * crawlSpeed;
+              fish.facing = fish.vx >= 0 ? 1 : -1;
+            }
+          }
+
+          // Restrict crawler vertical boundary strictly to substrate & rock base
+          const topBound = 370;
+          const bottomBound = H - 65;
+          if (fish.y < topBound) {
+            fish.y = topBound;
+            fish.vy = 0;
+          } else if (fish.y > bottomBound) {
+            fish.y = bottomBound;
+            fish.vy = 0;
+          }
         } else {
           // Normal ambient wandering behavior
           if (fish.celebrating > 0) {
@@ -796,13 +884,14 @@ export default function PixelTamagotchiTank({
 
         // ── RENDER FISH SPRITE ───────────────────────────────────────────────
         ctx.save();
-        const isSnailOrUrchin = fish.isBottomDweller && (
-          fish.spriteUrl.includes("urchin") || fish.spriteUrl.includes("snail")
+        const isUrchin = fish.spriteUrl.includes("urchin") || fish.name.toLowerCase().includes("urchin");
+        const isSnailOrUrchin = isCrawler || (
+          fish.isBottomDweller && (fish.spriteUrl.includes("urchin") || fish.spriteUrl.includes("snail"))
         );
 
         // Bobbing up/down:
         // - Stationary perchers: 0 (stays completely still on its perch!)
-        // - Snails & Urchins: 0 (crawls along substrate without swimming bob)
+        // - Crawlers (Urchins & Snails): ALWAYS 0 (never bobs in water)
         // - Moving percher: 0.3px (subtle)
         // - Hovered fish: 0.5px
         // - Normal swimmer: 1.2px
@@ -815,14 +904,14 @@ export default function PixelTamagotchiTank({
 
         ctx.translate(drawX, drawY);
 
-        // Flip horizontally based on facing direction
-        if (fish.facing === -1) {
+        // Flip horizontally based on facing direction (except Urchins which are spherical omni-profile)
+        if (fish.facing === -1 && !isUrchin) {
           ctx.scale(-1, 1);
         }
 
         // Slight rotation wiggle:
         // - Stationary perchers: 0 (rests flat/upright on rock, no wiggling)
-        // - Snails & Urchins: 0
+        // - Crawlers (Urchins & Snails): ALWAYS 0
         // - Moving fish: subtle
         const wiggleAngle = (isStationaryPercher || isSnailOrUrchin)
           ? 0
