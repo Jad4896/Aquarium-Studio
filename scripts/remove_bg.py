@@ -42,10 +42,38 @@ def isolate_primary_subject(arr):
     # Ensure valid bounding box
     cropped_arr = isolated_arr[ymin:ymax+1, xmin:xmax+1]
 
+    # Level fish horizontally if it is tilted:
+    # Use PCA or moments of opaque coordinates to compute principal orientation angle
+    y_coords, x_coords = np.where(cropped_arr[:, :, 3] > 40)
+    if len(x_coords) > 50:
+        x_centered = x_coords - np.mean(x_coords)
+        y_centered = y_coords - np.mean(y_coords)
+        cov = np.cov(x_centered, y_centered)
+        eigvals, eigvecs = np.linalg.eigh(cov)
+        major_axis = eigvecs[:, np.argmax(eigvals)] # (x, y)
+        angle_rad = np.arctan2(major_axis[1], major_axis[0])
+        angle_deg = np.degrees(angle_rad)
+
+        # If tilted noticeably (between 15 and 80 degrees), level it
+        if abs(angle_deg) > 15 and abs(angle_deg) < 75:
+            # Rotate to level horizontal line
+            from PIL import Image
+            temp_im = Image.fromarray(cropped_arr)
+            rotated_im = temp_im.rotate(angle_deg, resample=Image.Resampling.BILINEAR, expand=True)
+            rot_arr = np.array(rotated_im)
+            rot_mask = rot_arr[:, :, 3] > 40
+            r_rows = np.any(rot_mask, axis=1)
+            r_cols = np.any(rot_mask, axis=0)
+            if np.any(r_rows) and np.any(r_cols):
+                rymin, rymax = np.where(r_rows)[0][[0, -1]]
+                rxmin, rxmax = np.where(r_cols)[0][[0, -1]]
+                cropped_arr = rot_arr[rymin:rymax+1, rxmin:rxmax+1]
+
     # Check fill ratio on the isolated single organism
-    bbox_area = (ymax - ymin + 1) * (xmax - xmin + 1)
-    fill_ratio = np.sum(primary_mask) / max(1, bbox_area)
-    if fill_ratio < 0.12:
+    bbox_area = cropped_arr.shape[0] * cropped_arr.shape[1]
+    opaque_count = np.sum(cropped_arr[:, :, 3] > 40)
+    fill_ratio = opaque_count / max(1, bbox_area)
+    if fill_ratio < 0.10:
         return cropped_arr, False, f"Subject too sparse or fragmented (fill={fill_ratio:.1%})"
 
     return cropped_arr, True, "Subject intact"

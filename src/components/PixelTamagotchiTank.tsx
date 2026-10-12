@@ -69,6 +69,10 @@ interface FishEntity {
   width: number;
   height: number;
   isBottomDweller: boolean;
+  behaviorType: "percher" | "bottom" | "swimmer";
+  perchTimer: number; // frames to stay perched on rock/sandbed
+  perchX?: number;
+  perchY?: number;
   hunger: number;
   happiness: number;
   celebrating: number; // frames left of happy dance
@@ -97,6 +101,9 @@ function getPixelSpriteForLivestock(item: Livestock, isFreshwater: boolean): str
   }
   if (combined.includes("yellow assessor") || combined.includes("assessor") || combined.includes("flavissimus")) {
     return "/aquariums/yellow_assessor_pixel.png";
+  }
+  if (combined.includes("tailspot blenny") || combined.includes("blenny") || combined.includes("ecsenius") || combined.includes("stigmatura")) {
+    return "/aquariums/tailspot_blenny_pixel.png";
   }
   if (combined.includes("cherry shrimp") || combined.includes("neocaridina") || (isFreshwater && combined.includes("shrimp"))) {
     return "/aquariums/cherry_shrimp_pixel.png";
@@ -249,10 +256,30 @@ export default function PixelTamagotchiTank({
         };
       }
 
+      const combinedMeta = `${item.name || ""} ${item.species || ""} ${item.category || ""} ${(item as any).zone || ""} ${(item as any).notes || ""}`.toLowerCase();
+
+      // Categorize behavioral types based on natural ecology:
+      // 1. Perchers (Blenny, Goby, Hawkfish, Dartfish) perch on rocks/sandbed and do short darting hops
+      const isPercher =
+        combinedMeta.includes("blenny") ||
+        combinedMeta.includes("goby") ||
+        combinedMeta.includes("ecsenius") ||
+        combinedMeta.includes("hawkfish") ||
+        combinedMeta.includes("perch");
+
+      // 2. Bottom dwellers (Shrimps, Snails, Crabs, Urchins, Sand sifters)
       const isBottom =
-        (item.name || "").toLowerCase().includes("shrimp") ||
-        (item.name || "").toLowerCase().includes("snail") ||
-        (item.name || "").toLowerCase().includes("crab");
+        combinedMeta.includes("shrimp") ||
+        combinedMeta.includes("snail") ||
+        combinedMeta.includes("crab") ||
+        combinedMeta.includes("urchin") ||
+        combinedMeta.includes("sandbed");
+
+      const behaviorType: "percher" | "bottom" | "swimmer" = isPercher
+        ? "percher"
+        : isBottom
+        ? "bottom"
+        : "swimmer";
 
       if (existingMap.has(id)) {
         const prev = existingMap.get(id)!;
@@ -260,11 +287,17 @@ export default function PixelTamagotchiTank({
           ...prev,
           name: item.name || "Aquatic Pet",
           spriteUrl,
-          isBottomDweller: isBottom,
+          isBottomDweller: isBottom || isPercher,
+          behaviorType,
         });
       } else {
-        const startX = 100 + (idx * 160) % 650;
-        const startY = isBottom ? 360 + (idx % 3) * 20 : 120 + (idx * 70) % 240;
+        const startX = 120 + (idx * 150) % 640;
+        // Perchers rest on the lower rock shelf / sandbed (y: 330 to 410)
+        const startY = isPercher
+          ? 340 + (idx % 3) * 25
+          : isBottom
+          ? 375 + (idx % 3) * 18
+          : 120 + (idx * 70) % 240;
 
         newEntities.push({
           id,
@@ -274,14 +307,18 @@ export default function PixelTamagotchiTank({
           y: startY,
           targetX: startX,
           targetY: startY,
-          speed: 0.55 + Math.random() * 0.35,
-          vx: (Math.random() > 0.5 ? 1 : -1) * (0.45 + Math.random() * 0.3),
-          vy: (Math.random() - 0.5) * 0.2,
+          speed: isPercher ? 0.35 : 0.55 + Math.random() * 0.35,
+          vx: isPercher ? 0 : (Math.random() > 0.5 ? 1 : -1) * (0.45 + Math.random() * 0.3),
+          vy: 0,
           facing: Math.random() > 0.5 ? 1 : -1,
           tailWiggle: Math.random() * 10,
-          width: isBottom ? 34 : 46,
-          height: isBottom ? 27 : 32,
-          isBottomDweller: isBottom,
+          width: isBottom ? 36 : isPercher ? 46 : 48,
+          height: isBottom ? 28 : isPercher ? 32 : 32,
+          isBottomDweller: isBottom || isPercher,
+          behaviorType,
+          perchTimer: isPercher ? 120 + Math.floor(Math.random() * 180) : 0,
+          perchX: startX,
+          perchY: startY,
           hunger: 30,
           happiness: 95,
           celebrating: 0,
@@ -640,6 +677,37 @@ export default function PixelTamagotchiTank({
               vx: (Math.random() - 0.5) * 0.3,
             });
           }
+        } else if (fish.behaviorType === "percher") {
+          // ── PERCHER ECOLOGY (Blennies, Gobies, Hawkfish) ───────────────────
+          // Perchers naturally rest stationary on rocks/sandbed and do short darting hops
+          if (fish.perchTimer > 0) {
+            fish.perchTimer--;
+            fish.vx = 0;
+            fish.vy = 0;
+            // Gentle alert head bob / fin flutter
+            fish.tailWiggle += 0.04;
+          } else {
+            // Pick a new rock perch spot (y: 330 to 410) and do a quick hop
+            const targetPerchX = 130 + Math.random() * 620;
+            const targetPerchY = 340 + Math.random() * 65;
+            const hopDist = targetPerchX - fish.x;
+            fish.facing = hopDist >= 0 ? 1 : -1;
+            fish.vx = (hopDist >= 0 ? 1 : -1) * (0.8 + Math.random() * 0.4);
+            fish.vy = (targetPerchY - fish.y) * 0.05;
+            // Hop duration before resting again
+            fish.perchTimer = 180 + Math.floor(Math.random() * 240); // Rest for 3-7 seconds
+          }
+
+          // Restrict percher vertical boundary strictly to rocks & substrate
+          const topBound = 320;
+          const bottomBound = H - 70;
+          if (fish.y < topBound) {
+            fish.y = topBound;
+            fish.vy = Math.abs(fish.vy);
+          } else if (fish.y > bottomBound) {
+            fish.y = bottomBound;
+            fish.vy = -Math.abs(fish.vy);
+          }
         } else {
           // Normal ambient wandering behavior
           if (fish.celebrating > 0) {
@@ -720,10 +788,13 @@ export default function PixelTamagotchiTank({
             ? spriteImg.naturalWidth / spriteImg.naturalHeight
             : 1.6;
 
-          // Base height on organism type (reduced by 20% from 38/34 down to 30/27), scale width precisely by natural aspect ratio
-          const targetHeight = fish.isBottomDweller ? 27 : 30;
-          const drawW = Math.round(targetHeight * naturalAspect);
-          const drawH = targetHeight;
+          // Clear, detailed pixel dimensions:
+          // For elongated fish (aspect > 2.0), boost height slightly to ensure features are clearly discernible
+          const baseHeight = fish.isBottomDweller ? 28 : (naturalAspect > 2.0 ? 32 : 30);
+          const computedWidth = Math.round(baseHeight * naturalAspect);
+          // Guarantee minimum visible length of 56px for elongated fish
+          const drawW = Math.max(computedWidth, naturalAspect > 1.8 ? 56 : 42);
+          const drawH = Math.round(drawW / naturalAspect);
 
           // Keep fish.width and fish.height updated for accurate hover detection
           fish.width = drawW;

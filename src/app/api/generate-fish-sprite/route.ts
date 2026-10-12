@@ -53,6 +53,10 @@ const CURATED_SPRITES: Array<{ keywords: string[]; filename: string }> = [
     filename: "cleaner_shrimp_pixel.png",
   },
   {
+    keywords: ["tailspot blenny", "blenny", "ecsenius", "stigmatura"],
+    filename: "tailspot_blenny_pixel.png",
+  },
+  {
     keywords: ["snail", "turbo", "trochus", "nerite", "urchin"],
     filename: "turbo_snail_pixel.png",
   },

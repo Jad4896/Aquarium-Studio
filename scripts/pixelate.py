@@ -15,7 +15,7 @@ def convert_to_pixel_art(input_path, output_path, target_size=64):
 
     im = Image.open(input_path).convert("RGBA")
     
-    # Auto-crop any empty margins
+    # Crop tightly to non-empty bounding box so fish takes full resolution
     bbox = im.getbbox()
     if bbox:
         im = im.crop(bbox)
@@ -23,35 +23,32 @@ def convert_to_pixel_art(input_path, output_path, target_size=64):
     w, h = im.size
     aspect = w / max(1, h)
     
-    # Fit into a 54x42 inner bounding box inside the 64x64 canvas
-    max_w = int(target_size * 0.85)
-    max_h = int(target_size * 0.70)
-    
+    # Scale to full target resolution (e.g. 96px base) to retain rich pixel features
+    target_res = max(target_size, 96)
     if aspect > 1.0:
-        new_w = max_w
-        new_h = max(16, int(max_w / aspect))
+        new_w = target_res
+        new_h = max(24, int(target_res / aspect))
     else:
-        new_h = max_h
-        new_w = max(16, int(max_h * aspect))
+        new_h = target_res
+        new_w = max(24, int(target_res * aspect))
         
-    # Step 1: Downscale with bilinear filter to preserve silhouette
+    # Step 1: High-fidelity downsample
     small = im.resize((new_w, new_h), Image.Resampling.BILINEAR)
     
-    # Step 2: Create target 64x64 canvas with transparent background
-    canvas = Image.new("RGBA", (target_size, target_size), (0, 0, 0, 0))
-    offset_x = (target_size - new_w) // 2
-    offset_y = (target_size - new_h) // 2
-    canvas.paste(small, (offset_x, offset_y), small)
+    # Step 2: Crisp 16-bit color quantization (36 rich colors, no dithering)
+    alpha = small.split()[3]
+    rgb = small.convert("RGB").quantize(colors=36, dither=Image.Dither.NONE).convert("RGBA")
     
-    # Step 3: Quantize RGB channels to retro 28-color palette (no dithering for clean pixel clusters)
-    alpha = canvas.split()[3]
-    rgb = canvas.convert("RGB").quantize(colors=28, dither=Image.Dither.NONE).convert("RGBA")
-    
-    # Step 4: Re-apply crisp thresholded alpha mask
-    alpha_arr = np.array(alpha) > 80
+    # Step 3: Re-apply clean alpha mask
+    alpha_arr = np.array(alpha) > 60
     r, g, b, _ = rgb.split()
     clean_alpha = Image.fromarray((alpha_arr * 255).astype(np.uint8))
     final = Image.merge("RGBA", (r, g, b, clean_alpha))
+
+    # Auto-crop final sprite so it has NO empty padding margins
+    final_bbox = final.getbbox()
+    if final_bbox:
+        final = final.crop(final_bbox)
     
     final.save(output_path, "PNG")
     print(f"OK:{output_path}")
